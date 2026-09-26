@@ -15,3 +15,8 @@ build/
 next-env.d.ts
 .vercel
 coverage/
+# local assistant config — never committed
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+.mcp.json
