@@ -15,8 +15,21 @@ const schema = z.object({
   UPSTASH_REDIS_REST_TOKEN: z.string().optional().default(""),
   TURNSTILE_SECRET_KEY: z.string().optional().default(""),
   RESEND_API_KEY: z.string().optional().default(""),
-  EMAIL_FROM: z.string().optional().default("Aangan Living <onboarding@resend.dev>"),
+  EMAIL_FROM: z.string().optional().default("Wood & Wonders <onboarding@resend.dev>"),
   OWNER_NOTIFY_EMAIL: z.string().optional().default(""),
+  TRUSTED_ORIGINS: z
+    .string()
+    .optional()
+    .default("")
+    .refine(
+      (v) =>
+        v
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .every((s) => /^https?:\/\/[^/]+$/.test(s)),
+      "TRUSTED_ORIGINS must be a comma-separated list of http(s)://host[:port] origins"
+    ),
 });
 
 export const env = schema.parse(process.env);

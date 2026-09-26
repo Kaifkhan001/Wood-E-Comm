@@ -6,14 +6,35 @@ import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { env, isProd } from "./env";
 import { sendEmail } from "./email";
+import { site } from "./site";
 
 const googleEnabled = Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
 
+function trustedOrigins() {
+  const origins = new Set<string>();
+  const add = (url: string) => {
+    const trimmed = url.trim().replace(/\/$/, "");
+    if (trimmed) origins.add(trimmed);
+  };
+
+  add(env.BETTER_AUTH_URL);
+  add(site.url);
+  for (const extra of env.TRUSTED_ORIGINS.split(",")) add(extra);
+
+  if (!isProd) {
+    for (const host of ["localhost", "127.0.0.1"]) {
+      for (let port = 3000; port <= 3010; port++) add(`http://${host}:${port}`);
+    }
+  }
+
+  return Array.from(origins);
+}
+
 export const auth = betterAuth({
-  appName: "Aangan Living",
+  appName: "Wood & Wonders",
   baseURL: env.BETTER_AUTH_URL,
   secret: env.BETTER_AUTH_SECRET,
-  trustedOrigins: [env.BETTER_AUTH_URL],
+  trustedOrigins: trustedOrigins(),
   database: drizzleAdapter(db, { provider: "pg", schema }),
   emailAndPassword: {
     enabled: true,
@@ -26,7 +47,7 @@ export const auth = betterAuth({
     sendResetPassword: async ({ user, url }) => {
       await sendEmail(
         user.email,
-        "Reset your Aangan Living password",
+        "Reset your Wood & Wonders password",
         `Hi ${user.name},\n\nReset your password using this link (valid for 1 hour):\n${url}\n\nIf you didn't ask for this, you can ignore this email.`,
       );
     },

@@ -1,8 +1,8 @@
-# Aangan Living
+# Wood & Wonders
 
 Furniture store and interior-design studio website. Next.js 16 (App Router), Postgres (Neon) with Drizzle, Better Auth, Cloudinary, Tailwind CSS v4.
 
-"Aangan Living" is a placeholder brand. Change it in `src/lib/site.ts` (name, contact details, socials, WhatsApp number) and the wordmark in `src/components/layout/header.tsx` and `footer.tsx`.
+Business details (contact, socials, WhatsApp number) live in `src/lib/site.ts`; the wordmark is in `src/components/layout/header.tsx` and `footer.tsx`.
 
 ## What's in it
 
@@ -37,13 +37,23 @@ npm run make-admin -- you@yourdomain.in
 
 There is deliberately no way to become admin from the website.
 
+### Troubleshooting sign-in ("Invalid origin")
+
+Better Auth rejects any request whose `Origin` header isn't in its trusted-origins list — this is CSRF protection, not a bug. If you see `Invalid origin` in the server log:
+
+- Run the dev server on port 3000: `npm run dev -- -p 3000`. If something else is already listening there, find and stop it on Windows with `netstat -ano | findstr :3000` then `taskkill /PID <pid> /F`.
+- Keep `BETTER_AUTH_URL` and `NEXT_PUBLIC_SITE_URL` equal to the URL you actually open in the browser.
+- If you do need another port or domain (a teammate's tunnel, a staging URL, a second apex/`www.` domain), add it to `TRUSTED_ORIGINS` (comma-separated) instead of changing `BETTER_AUTH_URL`. In development, `localhost`/`127.0.0.1` ports 3000–3010 are already trusted automatically, so ordinary dev-port switching needs no configuration.
+- Email/password sign-up and sign-in work from any trusted origin regardless of `BETTER_AUTH_URL`. Google OAuth is stricter: the port in `BETTER_AUTH_URL` must match the redirect URI registered in Google Cloud Console, so switch ports there too if you change `BETTER_AUTH_URL`.
+- The first sign-up can take a few seconds in dev (password hashing plus first-time route compilation) — that's expected, not a hang.
+
 ## Services to set up
 
 | Service | Needed for | Notes |
 |---|---|---|
 | **Neon** (required) | Database | Use the **pooled** connection string. See "Lock down the database" below. |
 | **Google Cloud** | "Continue with Google" | OAuth client, type Web. Authorised redirect URI: `https://yourdomain.in/api/auth/callback/google` (and `http://localhost:3000/...` for dev). The button only appears when both Google env vars are set. |
-| **Cloudinary** | Admin image uploads | Uploads are signed server-side, admin-only, limited to jpg/png/webp/avif, stored in `aangan/products`, downscaled to max 2400px on ingest and served as AVIF/WebP automatically. |
+| **Cloudinary** | Admin image uploads | Uploads are signed server-side, admin-only, limited to jpg/png/webp/avif, stored in `wood-and-wonders/products` (and `wood-and-wonders/projects` for the portfolio), downscaled to max 2400px on ingest and served as AVIF/WebP automatically. |
 | **Upstash Redis** | Rate limiting on forms and orders | **Required in production.** Without it limits are per server instance only. Login/signup limits use the database and work without it. |
 | **Resend** | Password-reset emails, new-lead notifications | Verify your sending domain. Then set `requireEmailVerification: true` in `src/lib/auth.ts`. |
 | **Cloudflare Turnstile** | Bot protection on forms | Optional; honeypot + rate limits run regardless. |
@@ -62,16 +72,16 @@ There is deliberately no way to become admin from the website.
 The app only needs to read and write rows. Create a dedicated role in Neon's SQL editor instead of using the owner role:
 
 ```sql
-CREATE ROLE aangan_app WITH LOGIN PASSWORD '<long random password>';
-GRANT CONNECT ON DATABASE neondb TO aangan_app;
-GRANT USAGE ON SCHEMA public TO aangan_app;
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO aangan_app;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO aangan_app;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO aangan_app;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO aangan_app;
+CREATE ROLE wood_and_wonders_app WITH LOGIN PASSWORD '<long random password>';
+GRANT CONNECT ON DATABASE neondb TO wood_and_wonders_app;
+GRANT USAGE ON SCHEMA public TO wood_and_wonders_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO wood_and_wonders_app;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO wood_and_wonders_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO wood_and_wonders_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO wood_and_wonders_app;
 ```
 
-Use `aangan_app` in Vercel's `DATABASE_URL`. Keep the owner role only for running migrations. The app never exposes the database to the browser (no public anon key), so there's no RLS surface to misconfigure.
+Use `wood_and_wonders_app` in Vercel's `DATABASE_URL`. Keep the owner role only for running migrations. The app never exposes the database to the browser (no public anon key), so there's no RLS surface to misconfigure.
 
 ## Before launch: replace placeholder content
 
