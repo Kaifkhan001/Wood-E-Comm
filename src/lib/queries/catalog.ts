@@ -50,7 +50,7 @@ export async function getProducts(f: Filters, categoryId?: string) {
     limit: PAGE_SIZE,
     offset: (page - 1) * PAGE_SIZE,
     with: {
-      images: { orderBy: [asc(productImages.position)], limit: 2 },
+      images: { orderBy: [asc(productImages.position)], limit: 4 },
       category: { columns: { name: true, slug: true } },
     },
   });
@@ -93,7 +93,7 @@ export async function getRelatedProducts(categoryId: string, excludeId: string, 
     where: and(eq(products.categoryId, categoryId), ne(products.id, excludeId), eq(products.isActive, true)),
     orderBy: [desc(products.isFeatured), desc(products.createdAt)],
     limit,
-    with: { images: { orderBy: [asc(productImages.position)], limit: 2 }, category: { columns: { name: true, slug: true } } },
+    with: { images: { orderBy: [asc(productImages.position)], limit: 4 }, category: { columns: { name: true, slug: true } } },
   });
 }
 
@@ -102,7 +102,7 @@ export async function getFeaturedProducts(limit = 8) {
     where: and(eq(products.isActive, true), eq(products.isFeatured, true)),
     orderBy: [desc(products.createdAt)],
     limit,
-    with: { images: { orderBy: [asc(productImages.position)], limit: 2 }, category: { columns: { name: true, slug: true } } },
+    with: { images: { orderBy: [asc(productImages.position)], limit: 4 }, category: { columns: { name: true, slug: true } } },
   });
 }
 

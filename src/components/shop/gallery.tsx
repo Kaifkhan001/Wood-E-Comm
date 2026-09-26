@@ -6,20 +6,9 @@ import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight, X, ZoomIn } from "lucide-react";
 import { SmartImage } from "@/components/ui/smart-image";
 import { cn } from "@/lib/utils";
+import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 
 type Img = { src: string; alt: string };
-
-function usePrefersReducedMotion() {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(mq.matches);
-    const onChange = () => setReduced(mq.matches);
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, []);
-  return reduced;
-}
 
 export function Gallery({ images, name }: { images: Img[]; name: string }) {
   const reducedMotion = usePrefersReducedMotion();

@@ -1,37 +1,19 @@
 import Link from "next/link";
-import { SmartImage } from "@/components/ui/smart-image";
 import { imageSrc } from "@/lib/images";
 import { discountPercent, formatINR } from "@/lib/utils";
 import type { ProductCardData } from "@/lib/queries/catalog";
+import { ProductImageCarousel } from "@/components/shop/product-image-carousel";
 
 export function ProductCard({ p, priority }: { p: ProductCardData; priority?: boolean }) {
-  const [a, b] = p.images;
+  const images = p.images.map((img) => ({ src: imageSrc(img, 800), alt: img.alt || "" }));
   const off = discountPercent(p.price, p.mrp);
   return (
     <article className="group relative">
       <Link href={`/product/${p.slug}`} className="block">
-        <div className="relative aspect-[4/5] overflow-hidden rounded-sm bg-cane/30">
-          {a && (
-            <SmartImage
-              src={imageSrc(a, 800)}
-              alt={a.alt || p.name}
-              fill
-              priority={priority}
-              sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
-              className="object-cover transition-transform duration-700 ease-[cubic-bezier(.22,1,.36,1)] group-hover:scale-[1.04]"
-            />
-          )}
-          {b && (
-            <SmartImage
-              src={imageSrc(b, 800)}
-              alt=""
-              fill
-              sizes="(min-width: 1024px) 25vw, 33vw"
-              className="hidden object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100 md:block"
-            />
-          )}
-          {p.stock === 0 && <span className="absolute left-3 top-3 rounded-full bg-paper px-2.5 py-1 text-xs font-medium">Out of stock</span>}
-          {p.stock > 0 && off >= 10 && <span className="absolute left-3 top-3 rounded-full bg-brass px-2.5 py-1 text-xs font-medium text-white">{off}% off</span>}
+        <div className="relative">
+          <ProductImageCarousel images={images} name={p.name} priority={priority} />
+          {p.stock === 0 && <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-paper px-2.5 py-1 text-xs font-medium">Out of stock</span>}
+          {p.stock > 0 && off >= 10 && <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-brass px-2.5 py-1 text-xs font-medium text-white">{off}% off</span>}
         </div>
         <div className="mt-3 space-y-1">
           <h3 className="font-sans text-[15px] font-medium leading-snug text-ink group-hover:text-bottle">{p.name}</h3>
