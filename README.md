@@ -47,6 +47,10 @@ Better Auth rejects any request whose `Origin` header isn't in its trusted-origi
 - Email/password sign-up and sign-in work from any trusted origin regardless of `BETTER_AUTH_URL`. Google OAuth is stricter: the port in `BETTER_AUTH_URL` must match the redirect URI registered in Google Cloud Console, so switch ports there too if you change `BETTER_AUTH_URL`.
 - The first sign-up can take a few seconds in dev (password hashing plus first-time route compilation) — that's expected, not a hang.
 
+### Troubleshooting `npm run build` (generic errors during "Generating static pages")
+
+If `next build` fails with a generic `TypeError` (e.g. `Cannot read properties of null (reading 'useState')`) while generating static pages, and this isn't reproducible with `next build --debug-prerender`, check whether `NODE_ENV` is already set in your shell before you run the build (`echo $NODE_ENV` in bash, `echo $env:NODE_ENV` in PowerShell). A leftover `NODE_ENV` from a shell profile can leak into the build and cause exactly this class of crash even on unmodified code. Run the build with it explicitly unset, e.g. `env -u NODE_ENV npm run build` (bash) or `Remove-Item Env:\NODE_ENV; npm run build` (PowerShell), and unset it in your profile so this doesn't recur. The same variable is why `drizzle-kit` can fail to install/run (see "Check the environment" above).
+
 ## Services to set up
 
 | Service | Needed for | Notes |
