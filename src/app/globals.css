@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+/* Palette drawn from the materials we sell: lime-plaster walls, sheesham wood,
+   bottle-green upholstery, brass fittings and cane. */
+@theme {
+  --color-plaster: #e7e8e2;
+  --color-paper: #f6f6f2;
+  --color-ink: #211f1b;
+  --color-muted: #69655c;
+  --color-line: #d2d1c7;
+  --color-sheesham: #4a3326;
+  --color-bottle: #1f3a32;
+  --color-bottle-600: #2b4f44;
+  --color-brass: #a9822f;
+  --color-cane: #d6c8a6;
+  --color-danger: #a4332a;
+
+  --font-display: var(--font-gloock), Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  html {
+    /* clip (not hidden) so position: sticky keeps working */
+    overflow-x: clip;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-cane) transparent;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    overflow-x: clip;
+    background: var(--color-plaster);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01";
+    text-rendering: optimizeLegibility;
+  }
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  p { text-wrap: pretty; }
+  :focus-visible {
+    outline: 2px solid var(--color-brass);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+  ::selection { background: var(--color-cane); }
+  img { max-width: 100%; }
+}
+
+@utility container-x { margin-inline: auto; width: 100%; max-width: 1320px; padding-inline: 1.25rem; @media (width >= 40rem) { padding-inline: 2rem; } }
+@utility btn {
+  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-6 text-[15px] font-medium transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-60;
+}
+@utility btn-primary { @apply btn bg-bottle text-paper hover:bg-bottle-600; }
+@utility btn-outline { @apply btn border border-ink/25 text-ink hover:border-ink hover:bg-ink/5; }
+@utility btn-light { @apply btn bg-paper text-bottle hover:bg-white; }
+@utility field {
+  @apply w-full rounded-md border border-line bg-paper px-3.5 py-2.5 text-[15px] text-ink placeholder:text-muted/70 transition-colors focus:border-bottle focus:outline-none;
+}
+@utility label-text { @apply mb-1.5 block text-sm font-medium text-ink; }
+@utility field-error { @apply mt-1 text-sm text-danger; }
+
+.skeleton {
+  background: linear-gradient(90deg, #dcddd5 0%, #e9eae4 50%, #dcddd5 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 4px;
+}
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

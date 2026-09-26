@@ -1,0 +1,17 @@
+# dependencies
+node_modules/
+# next
+.next/
+out/
+build/
+# env files — NEVER commit real secrets
+.env
+.env.*
+!.env.example
+# misc
+*.log
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
+.vercel
+coverage/
