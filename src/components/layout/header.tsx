@@ -38,8 +38,8 @@ export function Header() {
       )}
     >
       <div className="container-x flex h-16 items-center justify-between gap-4 lg:h-20">
-        <Link href="/" className="font-display text-[26px] leading-none tracking-tight text-sheesham" aria-label={`${site.name} home`}>
-          Aangan
+        <Link href="/" className="shrink-0 font-display text-lg leading-none tracking-tight text-sheesham sm:text-2xl lg:text-[26px]" aria-label={`${site.name} home`}>
+          Wood &amp; Wonders
         </Link>
 
         <nav aria-label="Main" className="hidden lg:block">
@@ -112,7 +112,7 @@ export function Header() {
               transition={{ type: "tween", duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
             >
               <div className="flex h-16 items-center justify-between px-5">
-                <span className="font-display text-2xl text-sheesham">Aangan</span>
+                <span className="font-display text-xl text-sheesham">Wood &amp; Wonders</span>
                 <button type="button" className="inline-flex h-11 w-11 items-center justify-center rounded-full hover:bg-ink/5" onClick={() => setOpen(false)} aria-label="Close menu">
                   <X className="h-5 w-5" />
                 </button>
@@ -135,7 +135,7 @@ export function Header() {
                 </ul>
               </nav>
               <div className="space-y-4 border-t border-line p-5">
-                <a href={whatsappLink("Hi Aangan, I'd like to know more about your furniture and interiors.")} target="_blank" rel="noopener noreferrer" className="btn-primary w-full">
+                <a href={whatsappLink("Hi Wood & Wonders, I'd like to know more about your furniture and interiors.")} target="_blank" rel="noopener noreferrer" className="btn-primary w-full">
                   <WhatsAppIcon className="h-5 w-5" /> Chat on WhatsApp
                 </a>
                 <div className="flex justify-center gap-2 text-muted">

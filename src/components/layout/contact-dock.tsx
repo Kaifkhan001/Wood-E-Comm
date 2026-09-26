@@ -12,8 +12,8 @@ export function ContactDock() {
   if (HIDE_ON.some((p) => pathname.startsWith(p))) return null;
   const isInterior = pathname.startsWith("/interior-design") || pathname.startsWith("/get-a-quote");
   const msg = isInterior
-    ? "Hi Aangan, I need a quote for interior design work."
-    : "Hi Aangan, I have a question about your furniture.";
+    ? "Hi Wood & Wonders, I need a quote for interior design work."
+    : "Hi Wood & Wonders, I have a question about your furniture.";
 
   return (
     <>

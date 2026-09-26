@@ -56,7 +56,7 @@ export default async function ProjectPage({ params }: PageProps<"/interior-desig
           <p className="text-xl leading-relaxed">{p.summary}</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/get-a-quote" className="btn-primary">Get a quote for your home</Link>
-            <a href={whatsappLink(`Hi Aangan, I saw the "${p.title}" project and need a quote for interior design.`)} target="_blank" rel="noopener noreferrer" className="btn-outline">
+            <a href={whatsappLink(`Hi Wood & Wonders, I saw the "${p.title}" project and need a quote for interior design.`)} target="_blank" rel="noopener noreferrer" className="btn-outline">
               <WhatsAppIcon className="h-5 w-5" /> Ask on WhatsApp
             </a>
           </div>

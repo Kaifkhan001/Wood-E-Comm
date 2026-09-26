@@ -18,7 +18,7 @@ export default function ContactPage() {
         <p className="mt-4 max-w-md text-lg leading-relaxed text-muted">WhatsApp is the fastest way to reach us. We reply to every message within one working day.</p>
         <ul className="mt-8 space-y-5 text-[15px]">
           <li>
-            <a href={whatsappLink("Hi Aangan, I have a question.")} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 hover:text-bottle">
+            <a href={whatsappLink("Hi Wood & Wonders, I have a question.")} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 hover:text-bottle">
               <WhatsAppIcon className="h-5 w-5 text-[#1f7a4d]" /> Chat on WhatsApp
             </a>
           </li>

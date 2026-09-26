@@ -32,4 +32,4 @@ export function formatDate(d: Date) {
   return new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" }).format(d);
 }
 
-export const orderNumber = (n: number) => `AL-${String(n).padStart(5, "0")}`;
+export const orderNumber = (n: number) => `WW-${String(n).padStart(5, "0")}`;

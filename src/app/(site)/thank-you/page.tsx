@@ -13,7 +13,7 @@ const COPY = {
 export default async function ThankYou({ searchParams }: PageProps<"/thank-you">) {
   const sp = await searchParams;
   const type = (typeof sp.type === "string" && sp.type in COPY ? sp.type : "contact") as keyof typeof COPY;
-  const order = typeof sp.order === "string" && /^AL-\d{5,}$/.test(sp.order) ? sp.order : null;
+  const order = typeof sp.order === "string" && /^WW-\d{5,}$/.test(sp.order) ? sp.order : null;
   const c = COPY[type];
   return (
     <div className="container-x flex min-h-[60vh] flex-col items-start justify-center py-20">
@@ -22,7 +22,7 @@ export default async function ThankYou({ searchParams }: PageProps<"/thank-you">
       <p className="mt-4 max-w-xl text-lg leading-relaxed text-muted">{c.p}</p>
       <div className="mt-8 flex flex-wrap gap-3">
         {type === "order" ? <Link href="/account" className="btn-primary">View your orders</Link> : <Link href="/furniture" className="btn-primary">Browse furniture</Link>}
-        <a href={whatsappLink(order ? `Hi Aangan, about my order ${order}` : "Hi Aangan, following up on my request.")} target="_blank" rel="noopener noreferrer" className="btn-outline">Message us on WhatsApp</a>
+        <a href={whatsappLink(order ? `Hi Wood & Wonders, about my order ${order}` : "Hi Wood & Wonders, following up on my request.")} target="_blank" rel="noopener noreferrer" className="btn-outline">Message us on WhatsApp</a>
       </div>
     </div>
   );

@@ -46,7 +46,7 @@ export default async function AdminQuotes({ searchParams }: PageProps<"/admin/qu
                 <div className="grid gap-6 border-t border-line p-4 lg:grid-cols-[1.3fr_1fr]">
                   <dl className="grid gap-x-6 gap-y-2 text-[15px] sm:grid-cols-[110px_1fr]">
                     <dt className="text-muted">Phone</dt>
-                    <dd><a href={`tel:+91${q.phone}`} className="underline">{q.phone}</a> <a href={`https://wa.me/91${q.phone}?text=${encodeURIComponent(`Hi ${q.name.split(" ")[0]}, this is Aangan Living about your interior design enquiry.`)}`} target="_blank" rel="noopener noreferrer" className="ml-2 text-[#1f7a4d] underline">WhatsApp</a></dd>
+                    <dd><a href={`tel:+91${q.phone}`} className="underline">{q.phone}</a> <a href={`https://wa.me/91${q.phone}?text=${encodeURIComponent(`Hi ${q.name.split(" ")[0]}, this is Wood & Wonders about your interior design enquiry.`)}`} target="_blank" rel="noopener noreferrer" className="ml-2 text-[#1f7a4d] underline">WhatsApp</a></dd>
                     {q.email && <><dt className="text-muted">Email</dt><dd><a href={`mailto:${q.email}`} className="underline">{q.email}</a></dd></>}
                     <dt className="text-muted">Scope</dt><dd>{q.scope.join(", ")}</dd>
                     <dt className="text-muted">Budget</dt><dd>{q.budget}</dd>

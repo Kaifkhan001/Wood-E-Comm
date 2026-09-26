@@ -1,13 +1,13 @@
 // Public business details. Everything here is safe to ship to the browser.
 export const site = {
-  name: "Aangan Living",
-  shortName: "Aangan",
+  name: "Wood & Wonders",
+  shortName: "Wood & Wonders",
   tagline: "Furniture and interiors for Indian homes",
   description:
     "Solid-wood furniture made to last, and end-to-end interior design for new flats and renovations in Mumbai and across India.",
   url: (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, ""),
   locale: "en_IN",
-  email: process.env.NEXT_PUBLIC_CONTACT_EMAIL || "hello@aanganliving.in",
+  email: process.env.NEXT_PUBLIC_CONTACT_EMAIL || "hello@woodandwonders.in",
   phone: process.env.NEXT_PUBLIC_CONTACT_PHONE || "+91 98000 00000",
   whatsapp: (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "919800000000").replace(/\D/g, ""),
   address: {
@@ -19,9 +19,9 @@ export const site = {
   },
   hours: "Mon–Sat, 10am to 7pm",
   socials: {
-    instagram: "https://instagram.com/aanganliving",
-    facebook: "https://facebook.com/aanganliving",
-    youtube: "https://youtube.com/@aanganliving",
+    instagram: "https://instagram.com/woodandwonders",
+    facebook: "https://facebook.com/woodandwonders",
+    youtube: "https://youtube.com/@woodandwonders",
   },
 } as const;
 

@@ -114,7 +114,7 @@ export default async function ProductPage({ params }: PageProps<"/product/[slug]
           </div>
 
           <a
-            href={whatsappLink(`Hi Aangan, I'm interested in the ${p.name} (${formatINR(p.price)}). ${url}`)}
+            href={whatsappLink(`Hi Wood & Wonders, I'm interested in the ${p.name} (${formatINR(p.price)}). ${url}`)}
             target="_blank"
             rel="noopener noreferrer"
             className="mt-5 inline-flex items-center gap-2 text-[15px] text-[#1f7a4d] underline-offset-4 hover:underline"

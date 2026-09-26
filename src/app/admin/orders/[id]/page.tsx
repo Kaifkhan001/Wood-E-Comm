@@ -17,7 +17,7 @@ export default async function AdminOrder({ params }: PageProps<"/admin/orders/[i
   const o = await db.query.orders.findFirst({ where: eq(orders.id, id), with: { items: true } });
   if (!o) notFound();
   const num = orderNumber(o.number);
-  const wa = `https://wa.me/91${o.phone}?text=${encodeURIComponent(`Hi ${o.customerName.split(" ")[0]}, this is Aangan Living about your order ${num}.`)}`;
+  const wa = `https://wa.me/91${o.phone}?text=${encodeURIComponent(`Hi ${o.customerName.split(" ")[0]}, this is Wood & Wonders about your order ${num}.`)}`;
 
   return (
     <>

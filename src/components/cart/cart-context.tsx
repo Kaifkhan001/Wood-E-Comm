@@ -13,7 +13,7 @@ type Ctx = {
 };
 
 const CartContext = createContext<Ctx | null>(null);
-const KEY = "aangan_cart_v1";
+const KEY = "ww_cart_v1";
 const UUID = /^[0-9a-f-]{36}$/i;
 
 // The cart only stores product IDs and quantities. Prices are always

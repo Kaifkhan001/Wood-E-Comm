@@ -1,6 +1,6 @@
 export type Consent = "all" | "essential";
-export const CONSENT_COOKIE = "aangan_consent";
-export const CONSENT_EVENT = "aangan:consent";
+export const CONSENT_COOKIE = "ww_consent";
+export const CONSENT_EVENT = "ww:consent";
 
 export function readConsent(): Consent | null {
   if (typeof document === "undefined") return null;

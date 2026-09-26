@@ -19,7 +19,7 @@ export default function QuotePage() {
         </p>
         <div className="mt-8 space-y-3 text-[15px]">
           <p>Prefer to talk now?</p>
-          <a href={whatsappLink("Hi Aangan, I need a quote for interior design work.")} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-[#1f7a4d] underline-offset-4 hover:underline">
+          <a href={whatsappLink("Hi Wood & Wonders, I need a quote for interior design work.")} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-[#1f7a4d] underline-offset-4 hover:underline">
             <WhatsAppIcon className="h-5 w-5" /> WhatsApp a designer
           </a>
           <p><a href={`tel:${site.phone.replace(/\s/g, "")}`} className="underline underline-offset-4">{site.phone}</a>, {site.hours}</p>

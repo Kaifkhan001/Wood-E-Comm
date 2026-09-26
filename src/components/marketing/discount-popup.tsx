@@ -10,7 +10,7 @@ import { CONSENT_EVENT, readConsent } from "@/lib/consent";
 import { submitLead } from "@/app/actions/public";
 import { unsplash } from "@/lib/images";
 
-const KEY = "aangan_offer_v1";
+const KEY = "ww_offer_v1";
 const SNOOZE_DAYS = 14;
 const DELAY_MS = 20_000;
 const EXCLUDED = ["/admin", "/checkout", "/cart", "/login", "/signup", "/account", "/thank-you", "/privacy-policy", "/terms"];

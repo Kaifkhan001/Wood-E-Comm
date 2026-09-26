@@ -36,7 +36,7 @@ export function Footer() {
     <footer className="mt-24 bg-sheesham pb-28 text-paper/80 lg:pb-0">
       <div className="container-x grid gap-12 py-16 md:grid-cols-[1.4fr_repeat(3,1fr)]">
         <div className="max-w-sm">
-          <p className="font-display text-4xl text-paper">Aangan</p>
+          <p className="font-display text-3xl text-paper sm:text-4xl">Wood &amp; Wonders</p>
           <p className="mt-4 leading-relaxed">{site.description}</p>
           <address className="mt-6 not-italic leading-relaxed">
             {site.address.street}, {site.address.city} {site.address.postalCode}

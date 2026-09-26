@@ -121,7 +121,7 @@ export default async function HomePage() {
             <p className="mt-3 max-w-lg text-lg text-ink/75">Share it on WhatsApp and a designer will reply with ideas and a rough budget, usually the same day.</p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row">
-            <a href={whatsappLink("Hi Aangan, I need a quote for interior design. I can share my floor plan.")} target="_blank" rel="noopener noreferrer" className="btn flex-1 bg-[#1f7a4d] text-white hover:bg-[#19663f]">
+            <a href={whatsappLink("Hi Wood & Wonders, I need a quote for interior design. I can share my floor plan.")} target="_blank" rel="noopener noreferrer" className="btn flex-1 bg-[#1f7a4d] text-white hover:bg-[#19663f]">
               <WhatsAppIcon className="h-5 w-5" /> Send on WhatsApp
             </a>
             <a href={`mailto:${site.email}?subject=${encodeURIComponent("Interior design enquiry")}`} className="btn-outline flex-1">Email us</a>
