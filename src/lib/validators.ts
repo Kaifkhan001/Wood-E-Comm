@@ -135,6 +135,24 @@ export const categorySchema = z.object({
   position: z.coerce.number().int().min(0).max(1000).default(0),
 });
 
+const projectImageUrl = z
+  .url()
+  .refine((u) => /^https:\/\/(res\.cloudinary\.com|images\.unsplash\.com)\//.test(u), "Image host not allowed");
+
+export const projectSchema = z.object({
+  title: text(120, 2),
+  slug,
+  location: text(80, 2),
+  homeType: text(40, 2),
+  style: text(40, 2),
+  areaSqft: z.coerce.number().int().min(0).max(1_000_000).nullable().optional(),
+  durationWeeks: z.coerce.number().int().min(0).max(520).nullable().optional(),
+  summary: text(2000, 10),
+  images: z.array(projectImageUrl).min(1, "Add at least one image").max(12),
+  isPublished: z.boolean(),
+  position: z.coerce.number().int().min(0).max(1000).default(0),
+});
+
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T; message?: string }
   | { ok: false; error: string; fieldErrors?: Record<string, string> };

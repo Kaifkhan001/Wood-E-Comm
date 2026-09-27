@@ -10,7 +10,7 @@ Business details (contact, socials, WhatsApp number) live in `src/lib/site.ts`; 
 
 **Interior design**: project gallery, project pages, a three-step quote form, WhatsApp shortcuts with prefilled messages throughout.
 
-**Admin** (`/admin`): dashboard with 30-day sales, products (add, edit, hide, delete, image upload and ordering), categories, orders (status workflow that reserves and releases stock), interior quote pipeline, contact messages, offer sign-ups with CSV export.
+**Admin** (`/admin`): dashboard with 30-day sales, products (add, edit, hide, delete, image upload and ordering), categories, projects (portfolio management with cover and gallery uploads), orders (status workflow that reserves and releases stock), interior quote pipeline, a read-only customers list, contact messages, offer sign-ups with CSV export.
 
 **Marketing**: delayed "unlock your discount" popup, cookie consent, GA4 (only after consent), Vercel Analytics (cookieless), JSON-LD for products, breadcrumbs and the business, sitemap.xml, robots.txt.
 
@@ -93,7 +93,7 @@ Use `wood_and_wonders_app` in Vercel's `DATABASE_URL`. Keep the owner role only 
 - Home page stats ("140+ homes", "Jodhpur workshop", "1 year warranty"), delivery promises and project write-ups are placeholder copy. Replace with real facts.
 - Privacy policy and terms are templates. Have a lawyer review them.
 - Add `public/og.png` (1200×630) for social sharing previews.
-- Project (portfolio) pages are seeded; editing them in the admin panel is a planned next step. For now edit via the database or `src/db/seed.ts`.
+- Project (portfolio) pages are seeded; manage them at `/admin/projects` (add, edit, publish/unpublish, reorder, delete).
 
 ## Scripts
 

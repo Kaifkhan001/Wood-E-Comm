@@ -1,9 +1,9 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { env } from "./env";
+import { UPLOAD_FOLDER, PROJECTS_UPLOAD_FOLDER } from "./cloudinary-folders";
 
-export const UPLOAD_FOLDER = "wood-and-wonders/products";
-export const PROJECTS_UPLOAD_FOLDER = "wood-and-wonders/projects";
+export { UPLOAD_FOLDER, PROJECTS_UPLOAD_FOLDER };
 const ALLOWED_UPLOAD_FOLDERS = [UPLOAD_FOLDER, PROJECTS_UPLOAD_FOLDER];
 // Downscale on ingest so originals never exceed 2400px (keeps storage + bandwidth low).
 export const UPLOAD_TRANSFORMATION = "c_limit,w_2400,h_2400";

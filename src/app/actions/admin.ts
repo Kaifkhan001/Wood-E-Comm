@@ -3,10 +3,10 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/db";
-import { categories, contactMessages, orderItems, orders, productImages, products, quoteRequests, orderStatusEnum, quoteStatusEnum } from "@/db/schema";
+import { categories, contactMessages, orderItems, orders, productImages, products, projects, quoteRequests, orderStatusEnum, quoteStatusEnum } from "@/db/schema";
 import { assertAdmin } from "@/lib/session";
 import { destroyAsset } from "@/lib/cloudinary";
-import { categorySchema, productSchema, zodErrors, type ActionResult } from "@/lib/validators";
+import { categorySchema, productSchema, projectSchema, zodErrors, type ActionResult } from "@/lib/validators";
 
 const GENERIC = "Couldn't save. Please try again.";
 const uuid = z.uuid();
@@ -143,6 +143,75 @@ export async function deleteCategory(id: string): Promise<ActionResult> {
   revalidateCatalog();
   revalidatePath("/admin/categories");
   return { ok: true, message: "Category deleted" };
+}
+
+/* ── Projects (interior design portfolio) ── */
+function revalidateProjects(slug?: string) {
+  revalidatePath("/");
+  revalidatePath("/interior-design", "layout");
+  if (slug) revalidatePath(`/interior-design/${slug}`);
+  revalidatePath("/sitemap.xml");
+}
+
+/** Best-effort: recovers a Cloudinary public_id from a delivery URL we generated, for cleanup. */
+function cloudinaryPublicIdFromUrl(url: string): string | null {
+  const m = url.match(/\/image\/upload\/(?:[a-z]+_[^/]+\/)*(?:v\d+\/)?(.+)\.[a-zA-Z0-9]+$/);
+  return m ? m[1] : null;
+}
+
+export async function saveProject(id: string | null, input: unknown): Promise<ActionResult<{ id: string }>> {
+  const denied = await gate();
+  if (denied) return denied;
+  if (id && !uuid.safeParse(id).success) return { ok: false, error: "Invalid project." };
+
+  const parsed = projectSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Please fix the highlighted fields.", fieldErrors: zodErrors(parsed.error) };
+  const { images, ...data } = parsed.data;
+  const values = { ...data, areaSqft: data.areaSqft || null, durationWeeks: data.durationWeeks || null, coverUrl: images[0], gallery: images };
+
+  try {
+    let removed: string[] = [];
+    let pid = id;
+    if (pid) {
+      const [old] = await db.select({ gallery: projects.gallery }).from(projects).where(eq(projects.id, pid)).limit(1);
+      if (!old) return { ok: false, error: "This project no longer exists." };
+      const keep = new Set(images);
+      removed = old.gallery.filter((u) => !keep.has(u));
+      await db.update(projects).set(values).where(eq(projects.id, pid));
+    } else {
+      const [row] = await db.insert(projects).values(values).returning({ id: projects.id });
+      pid = row.id;
+    }
+    removed.forEach((u) => { const p = cloudinaryPublicIdFromUrl(u); if (p) void destroyAsset(p); });
+    revalidateProjects(data.slug);
+    revalidatePath("/admin/projects");
+    return { ok: true, data: { id: pid }, message: "Project saved" };
+  } catch (e) {
+    if (isUniqueViolation(e)) return { ok: false, error: "That URL slug is already used by another project.", fieldErrors: { slug: "Already in use" } };
+    console.error("saveProject", e);
+    return { ok: false, error: GENERIC };
+  }
+}
+
+export async function deleteProject(id: string): Promise<ActionResult> {
+  const denied = await gate();
+  if (denied) return denied;
+  if (!uuid.safeParse(id).success) return { ok: false, error: "Invalid project." };
+  const [del] = await db.delete(projects).where(eq(projects.id, id)).returning({ slug: projects.slug, gallery: projects.gallery });
+  del?.gallery.forEach((u) => { const p = cloudinaryPublicIdFromUrl(u); if (p) void destroyAsset(p); });
+  revalidateProjects(del?.slug);
+  revalidatePath("/admin/projects");
+  return { ok: true, message: "Project deleted" };
+}
+
+export async function toggleProjectPublished(id: string, isPublished: boolean): Promise<ActionResult> {
+  const denied = await gate();
+  if (denied) return denied;
+  if (!uuid.safeParse(id).success) return { ok: false, error: "Invalid project." };
+  const [row] = await db.update(projects).set({ isPublished: Boolean(isPublished) }).where(eq(projects.id, id)).returning({ slug: projects.slug });
+  revalidateProjects(row?.slug);
+  revalidatePath("/admin/projects");
+  return { ok: true };
 }
 
 /* ── Orders ── */

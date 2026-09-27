@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { and, count, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { contactMessages, leads, orders, products, quoteRequests } from "@/db/schema";
+import { contactMessages, leads, orders, products, projects, quoteRequests } from "@/db/schema";
 import { Card, PageHeader, StatusPill, Table } from "@/components/admin/ui";
 import { formatDate, formatINR, orderNumber } from "@/lib/utils";
 import { SalesChart } from "@/components/admin/sales-chart";
@@ -16,12 +16,13 @@ export default async function Dashboard() {
   const since = new Date(Date.now() - 29 * 86_400_000);
   since.setHours(0, 0, 0, 0);
 
-  const [[revenue], [pendingOrders], [newQuotes], [openMsgs], [leadCount], recent, lowStock, daily] = await Promise.all([
+  const [[revenue], [pendingOrders], [newQuotes], [openMsgs], [leadCount], [projectCount], recent, lowStock, daily] = await Promise.all([
     db.select({ v: sql<number>`coalesce(sum(${orders.subtotal}),0)::int`, n: count() }).from(orders).where(and(inArray(orders.status, [...SOLD]), gte(orders.createdAt, monthStart))),
     db.select({ n: count() }).from(orders).where(eq(orders.status, "requested")),
     db.select({ n: count() }).from(quoteRequests).where(eq(quoteRequests.status, "new")),
     db.select({ n: count() }).from(contactMessages).where(eq(contactMessages.isResolved, false)),
     db.select({ n: count() }).from(leads),
+    db.select({ total: count(), published: sql<number>`count(*) filter (where ${projects.isPublished})::int` }).from(projects),
     db.select().from(orders).orderBy(desc(orders.createdAt)).limit(6),
     db.select({ id: products.id, name: products.name, stock: products.stock }).from(products).where(and(eq(products.isActive, true), lte(products.stock, 3))).orderBy(products.stock).limit(6),
     db
@@ -92,6 +93,12 @@ export default async function Dashboard() {
                 ))}
               </ul>
             ) : <p className="text-sm text-muted">Everything is well stocked.</p>}
+          </Card>
+        </section>
+        <section>
+          <div className="mb-3 flex items-center justify-between"><h2 className="font-sans text-base font-semibold">Projects</h2><Link href="/admin/projects" className="text-sm underline underline-offset-4">All projects</Link></div>
+          <Card>
+            <p className="text-sm text-muted">{projectCount.published} published of {projectCount.total} total</p>
           </Card>
         </section>
       </div>

@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Package, Tags, ShoppingCart, Ruler, Inbox } from "lucide-react";
+import { LayoutDashboard, Package, Tags, ShoppingCart, Ruler, Inbox, Building2, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
@@ -10,6 +10,8 @@ const items = [
   { href: "/admin/quotes", label: "Interior quotes", icon: Ruler },
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/categories", label: "Categories", icon: Tags },
+  { href: "/admin/projects", label: "Projects", icon: Building2 },
+  { href: "/admin/customers", label: "Customers", icon: Users },
   { href: "/admin/messages", label: "Messages and leads", icon: Inbox },
 ];
 
