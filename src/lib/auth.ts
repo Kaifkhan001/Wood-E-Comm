@@ -45,11 +45,11 @@ export const auth = betterAuth({
     requireEmailVerification: false,
     revokeSessionsOnPasswordReset: true,
     sendResetPassword: async ({ user, url }) => {
-      await sendEmail(
-        user.email,
-        "Reset your Wood & Wonders password",
-        `Hi ${user.name},\n\nReset your password using this link (valid for 1 hour):\n${url}\n\nIf you didn't ask for this, you can ignore this email.`,
-      );
+      await sendEmail({
+        to: user.email,
+        subject: "Reset your Wood & Wonders password",
+        text: `Hi ${user.name},\n\nReset your password using this link (valid for 1 hour):\n${url}\n\nIf you didn't ask for this, you can ignore this email.`,
+      });
     },
   },
   socialProviders: googleEnabled

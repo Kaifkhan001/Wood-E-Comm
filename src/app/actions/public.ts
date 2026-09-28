@@ -1,4 +1,5 @@
 "use server";
+import { after } from "next/server";
 import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
@@ -7,7 +8,8 @@ import { getCartProducts } from "@/lib/queries/catalog";
 import { getSession } from "@/lib/session";
 import { checkLimit, clientIp, limiters } from "@/lib/ratelimit";
 import { verifyTurnstile } from "@/lib/turnstile";
-import { notifyOwner } from "@/lib/email";
+import { sendEmail, notifyOwner, emailShell, escapeHtml, formatIST, customerWhatsappLink } from "@/lib/email";
+import { site, whatsappLink } from "@/lib/site";
 import { orderNumber } from "@/lib/utils";
 import {
   contactSchema,
@@ -55,7 +57,24 @@ export async function submitContact(input: unknown): Promise<ActionResult> {
   if (!parsed.success) return { ok: false, error: "Please check the highlighted fields.", fieldErrors: zodErrors(parsed.error) };
   try {
     await db.insert(contactMessages).values(parsed.data);
-    await notifyOwner("New contact message", `${parsed.data.name} <${parsed.data.email}> ${parsed.data.phone}\n\n${parsed.data.message}`);
+    const d = parsed.data;
+    after(() =>
+      notifyOwner({
+        subject: `New message from ${d.name}`,
+        text: `${d.name} <${d.email}> ${d.phone}\nReceived ${formatIST(new Date())}\n\n${d.message}`,
+        html: emailShell({
+          preheader: d.message.slice(0, 100),
+          bodyHtml: `
+            <p><strong>${escapeHtml(d.name)}</strong> sent a message ${escapeHtml(formatIST(new Date()))}.</p>
+            <p>Email: <a href="mailto:${escapeHtml(d.email)}">${escapeHtml(d.email)}</a>${d.phone ? ` &middot; Phone: <a href="tel:+91${escapeHtml(d.phone)}">${escapeHtml(d.phone)}</a>` : ""}</p>
+            <p style="white-space:pre-line;border-left:3px solid #eee;padding-left:12px;">${escapeHtml(d.message)}</p>
+          `,
+          ctaLabel: "View in admin",
+          ctaUrl: `${site.url}/admin/messages`,
+        }),
+        replyTo: d.email || undefined,
+      }),
+    );
     return { ok: true };
   } catch (e) {
     console.error("submitContact", e);
@@ -74,10 +93,54 @@ export async function submitQuote(input: unknown): Promise<ActionResult> {
     const session = await getSession();
     await db.insert(quoteRequests).values({ ...parsed.data, userId: session?.user.id ?? null });
     const d = parsed.data;
-    await notifyOwner(
-      `New interior quote: ${d.homeSize} in ${d.city}`,
-      `${d.name}, ${d.phone} ${d.email}\n${d.propertyType}, ${d.homeSize}\nScope: ${d.scope.join(", ")}\nBudget: ${d.budget}\nTimeline: ${d.timeline}\n\n${d.message}`,
+    const receivedAt = formatIST(new Date());
+    const waLink = customerWhatsappLink(d.phone, `Hi ${d.name.split(" ")[0]}, this is Wood & Wonders about your interior design enquiry.`);
+
+    after(() =>
+      notifyOwner({
+        subject: `New interior quote: ${d.homeSize} ${d.propertyType.toLowerCase()} in ${d.city}`,
+        text: `${d.name}, ${d.phone} ${d.email}\nReceived ${receivedAt}\n${d.propertyType}, ${d.homeSize}, ${d.city}\nScope: ${d.scope.join(", ")}\nBudget: ${d.budget}\nTimeline: ${d.timeline}\n\n${d.message}`,
+        html: emailShell({
+          preheader: `${d.name}, ${d.homeSize} in ${d.city}`,
+          bodyHtml: `
+            <p><strong>${escapeHtml(d.name)}</strong> requested a quote ${escapeHtml(receivedAt)}.</p>
+            <p>
+              Phone: <a href="tel:+91${escapeHtml(d.phone)}">${escapeHtml(d.phone)}</a> &middot; <a href="${waLink}">WhatsApp</a><br />
+              ${d.email ? `Email: <a href="mailto:${escapeHtml(d.email)}">${escapeHtml(d.email)}</a><br />` : ""}
+              City: ${escapeHtml(d.city)}<br />
+              Property: ${escapeHtml(d.propertyType)}, ${escapeHtml(d.homeSize)}<br />
+              Scope: ${escapeHtml(d.scope.join(", "))}<br />
+              Budget: ${escapeHtml(d.budget)}<br />
+              Timeline: ${escapeHtml(d.timeline)}
+            </p>
+            ${d.message ? `<p style="white-space:pre-line;border-left:3px solid #eee;padding-left:12px;">${escapeHtml(d.message)}</p>` : ""}
+          `,
+          ctaLabel: "View in admin",
+          ctaUrl: `${site.url}/admin/quotes`,
+        }),
+        replyTo: d.email || undefined,
+      }),
     );
+
+    if (d.email) {
+      after(() =>
+        sendEmail({
+          to: d.email,
+          subject: "We've received your quote request",
+          text: `Hi ${d.name},\n\nWe've received your request. A designer will call you within one working day.\n\nQuestions? Message us on WhatsApp: ${whatsappLink("Hi Wood & Wonders, following up on my quote request.")}`,
+          html: emailShell({
+            bodyHtml: `
+              <p>Hi ${escapeHtml(d.name)},</p>
+              <p>We've received your request. A designer will call you within one working day with ideas and a budget estimate.</p>
+              <p>In a hurry? Message us directly on WhatsApp.</p>
+            `,
+            ctaLabel: "Chat on WhatsApp",
+            ctaUrl: whatsappLink("Hi Wood & Wonders, following up on my quote request."),
+          }),
+        }),
+      );
+    }
+
     return { ok: true };
   } catch (e) {
     console.error("submitQuote", e);
@@ -147,7 +210,30 @@ export async function placeOrder(input: unknown): Promise<ActionResult<{ orderId
 
     if ("error" in result) return { ok: false, error: result.error! };
     const num = orderNumber(result.order.number);
-    await notifyOwner(`New order request ${num}`, `${data.customerName}, ${data.phone}\n${data.city}, ${data.pincode}\nSubtotal: ₹${result.subtotal}`);
+    const receivedAt = formatIST(new Date());
+    const waLink = customerWhatsappLink(data.phone, `Hi ${data.customerName.split(" ")[0]}, this is Wood & Wonders about your order ${num}.`);
+    after(() =>
+      notifyOwner({
+        subject: `New order request ${num}`,
+        text: `${data.customerName}, ${data.phone}\nReceived ${receivedAt}\n${data.city}, ${data.pincode}\nSubtotal: ₹${result.subtotal}`,
+        html: emailShell({
+          preheader: `${num}, ₹${result.subtotal}`,
+          bodyHtml: `
+            <p><strong>${escapeHtml(data.customerName)}</strong> placed order <strong>${escapeHtml(num)}</strong> ${escapeHtml(receivedAt)}.</p>
+            <p>
+              Phone: <a href="tel:+91${escapeHtml(data.phone)}">${escapeHtml(data.phone)}</a> &middot; <a href="${waLink}">WhatsApp</a><br />
+              Email: <a href="mailto:${escapeHtml(session.user.email)}">${escapeHtml(session.user.email)}</a><br />
+              Delivery: ${escapeHtml(data.addressLine1)}${data.addressLine2 ? `, ${escapeHtml(data.addressLine2)}` : ""}, ${escapeHtml(data.city)}, ${escapeHtml(data.state)} ${escapeHtml(data.pincode)}<br />
+              Subtotal: ₹${result.subtotal.toLocaleString("en-IN")}
+            </p>
+            ${data.notes ? `<p style="white-space:pre-line;border-left:3px solid #eee;padding-left:12px;">${escapeHtml(data.notes)}</p>` : ""}
+          `,
+          ctaLabel: "View order",
+          ctaUrl: `${site.url}/admin/orders/${result.order.id}`,
+        }),
+        replyTo: session.user.email,
+      }),
+    );
     revalidatePath("/account");
     return { ok: true, data: { orderId: result.order.id, number: num } };
   } catch (e) {

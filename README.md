@@ -59,9 +59,20 @@ If `next build` fails with a generic `TypeError` (e.g. `Cannot read properties o
 | **Google Cloud** | "Continue with Google" | OAuth client, type Web. Authorised redirect URI: `https://yourdomain.in/api/auth/callback/google` (and `http://localhost:3000/...` for dev). The button only appears when both Google env vars are set. |
 | **Cloudinary** | Admin image uploads | Uploads are signed server-side, admin-only, limited to jpg/png/webp/avif, stored in `wood-and-wonders/products` (and `wood-and-wonders/projects` for the portfolio), downscaled to max 2400px on ingest and served as AVIF/WebP automatically. |
 | **Upstash Redis** | Rate limiting on forms and orders | **Required in production.** Without it limits are per server instance only. Login/signup limits use the database and work without it. |
-| **Resend** | Password-reset emails, new-lead notifications | Verify your sending domain. Then set `requireEmailVerification: true` in `src/lib/auth.ts`. |
+| **Resend** | Password-reset emails, quote/order/contact notifications | See "Set up email" below. |
 | **Cloudflare Turnstile** | Bot protection on forms | Optional; honeypot + rate limits run regardless. |
 | **GA4** | Analytics | Loads only after "Accept all". |
+
+## Set up email
+
+Quote requests, order requests and contact messages email the owner instantly (as HTML with a plain-text fallback) and, for quotes, send the customer a short confirmation if they gave an email. Without Resend configured, these are logged to the console in dev instead of sent — nothing breaks.
+
+1. Create a free account at [resend.com](https://resend.com).
+2. Add and verify your sending domain (Resend gives you DNS records — SPF/DKIM — to add at your registrar; verification can take a few minutes to a few hours).
+3. Create an API key (Dashboard → API Keys).
+4. Set `RESEND_API_KEY`, `EMAIL_FROM` (e.g. `"Wood & Wonders <hello@yourdomain.in>"`, must use your verified domain), and `OWNER_NOTIFY_EMAIL` (where owner notifications go).
+5. Before your domain is verified, Resend's shared test sender `onboarding@resend.dev` can only deliver to the email address on your own Resend account — useful for a first smoke test, not for real customers.
+6. Once `RESEND_API_KEY` is set, consider setting `requireEmailVerification: true` in `src/lib/auth.ts` so new accounts must confirm their email.
 
 ## Deploy to Vercel
 
