@@ -1,8 +1,10 @@
 "use client";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { updateOrder, updateQuote } from "@/app/actions/admin";
 import { STATUS_LABEL } from "./ui";
+import { SaveBar } from "./save-bar";
+import { useUnsavedChangesGuard } from "@/lib/use-unsaved-changes";
 
 /** Status + internal notes editor shared by orders and quotes. */
 export function StatusEditor({
@@ -11,7 +13,15 @@ export function StatusEditor({
   const [s, setS] = useState(status);
   const [n, setN] = useState(notes);
   const [pending, start] = useTransition();
+  const [saved, setSaved] = useState(false);
   const dirty = s !== status || n !== notes;
+  useUnsavedChangesGuard(dirty);
+
+  useEffect(() => {
+    if (!saved) return;
+    const t = setTimeout(() => setSaved(false), 2000);
+    return () => clearTimeout(t);
+  }, [saved]);
 
   return (
     <form
@@ -21,8 +31,9 @@ export function StatusEditor({
         start(async () => {
           const fn = kind === "order" ? updateOrder : updateQuote;
           const r = await fn(id, { status: s, adminNotes: n });
-          r.ok ? toast.success(r.message ?? "Saved") : toast.error(r.error);
-          if (!r.ok) setS(status);
+          if (!r.ok) { toast.error(r.error); setS(status); return; }
+          toast.success(r.message ?? "Saved");
+          setSaved(true);
         });
       }}
     >
@@ -37,7 +48,14 @@ export function StatusEditor({
         <label htmlFor={`nt-${id}`} className="label-text">Internal notes <span className="font-normal text-muted">(customers never see these)</span></label>
         <textarea id={`nt-${id}`} rows={4} className="field bg-white" maxLength={2000} value={n} onChange={(e) => setN(e.target.value)} />
       </div>
-      <button type="submit" className="btn-primary" disabled={pending || !dirty}>{pending ? "Saving…" : "Save"}</button>
+      <SaveBar
+        dirty={dirty}
+        pending={pending}
+        saved={saved}
+        saveLabel="Save"
+        discardConfirm="Discard your changes to status and notes?"
+        onDiscard={() => { setS(status); setN(notes); }}
+      />
     </form>
   );
 }

@@ -1,12 +1,14 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ArrowDown, ArrowUp, ImagePlus, Trash2 } from "lucide-react";
 import { saveProject } from "@/app/actions/admin";
 import { SmartImage } from "@/components/ui/smart-image";
 import { PROJECTS_UPLOAD_FOLDER } from "@/lib/cloudinary-folders";
 import { slugify } from "@/lib/utils";
+import { SaveBar } from "./save-bar";
+import { useUnsavedChangesGuard } from "@/lib/use-unsaved-changes";
 
 export type ProjectFormValues = {
   title: string; slug: string; location: string; homeType: string; style: string;
@@ -20,12 +22,22 @@ const TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif"];
 export function ProjectForm({ id, initial }: { id: string | null; initial: ProjectFormValues }) {
   const router = useRouter();
   const [v, setV] = useState(initial);
+  const [baseline, setBaseline] = useState(initial);
   const [slugTouched, setSlugTouched] = useState(Boolean(id));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pending, setPending] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState(0);
   const [urlInput, setUrlInput] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+  const dirty = JSON.stringify(v) !== JSON.stringify(baseline);
+  useUnsavedChangesGuard(dirty);
+
+  useEffect(() => {
+    if (!saved) return;
+    const t = setTimeout(() => setSaved(false), 2000);
+    return () => clearTimeout(t);
+  }, [saved]);
 
   const set = <K extends keyof ProjectFormValues>(k: K, val: ProjectFormValues[K]) => setV((s) => ({ ...s, [k]: val }));
 
@@ -88,7 +100,11 @@ export function ProjectForm({ id, initial }: { id: string | null; initial: Proje
     }
     toast.success("Project saved");
     if (!id && res.data) router.replace(`/admin/projects/${res.data.id}`);
-    else router.refresh();
+    else {
+      setBaseline(v);
+      setSaved(true);
+      router.refresh();
+    }
   }
 
   const F = ({ k }: { k: string }) => (errors[k] ? <p className="field-error">{errors[k]}</p> : null);
@@ -124,6 +140,7 @@ export function ProjectForm({ id, initial }: { id: string | null; initial: Proje
             <h2 className="font-sans text-base font-semibold">Images</h2>
             <span className="text-sm text-muted">{v.images.length}/12, first image is the cover</span>
           </div>
+          <p className="mt-1 text-xs text-muted">Images are attached when you save.</p>
           <F k="images" />
           <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {v.images.map((url, i) => (
@@ -179,7 +196,15 @@ export function ProjectForm({ id, initial }: { id: string | null; initial: Proje
           <div><label htmlFor="pr-area" className="label-text">Area (sq ft)</label><input id="pr-area" inputMode="numeric" className="field bg-white" value={v.areaSqft} onChange={(e) => set("areaSqft", e.target.value.replace(/\D/g, ""))} placeholder="Optional" /></div>
           <div><label htmlFor="pr-dur" className="label-text">Duration (weeks)</label><input id="pr-dur" inputMode="numeric" className="field bg-white" value={v.durationWeeks} onChange={(e) => set("durationWeeks", e.target.value.replace(/\D/g, ""))} placeholder="Optional" /></div>
         </section>
-        <button type="submit" className="btn-primary w-full" disabled={pending || uploading > 0}>{pending ? "Saving…" : id ? "Save changes" : "Create project"}</button>
+        <SaveBar
+          dirty={dirty}
+          pending={pending || uploading > 0}
+          saved={saved}
+          creating={!id}
+          saveLabel={id ? "Save changes" : "Create project"}
+          discardConfirm="Discard your changes to this project?"
+          onDiscard={id ? () => setV(baseline) : undefined}
+        />
       </div>
     </form>
   );

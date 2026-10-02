@@ -1,12 +1,14 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ArrowDown, ArrowUp, ImagePlus, Trash2 } from "lucide-react";
 import { saveProduct } from "@/app/actions/admin";
 import { SmartImage } from "@/components/ui/smart-image";
 import { imageSrc } from "@/lib/images";
 import { slugify } from "@/lib/utils";
+import { SaveBar } from "./save-bar";
+import { useUnsavedChangesGuard } from "@/lib/use-unsaved-changes";
 
 type Img = { publicId?: string | null; url?: string | null; alt: string };
 export type ProductFormValues = {
@@ -21,12 +23,22 @@ const TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif"];
 export function ProductForm({ id, initial, categories }: { id: string | null; initial: ProductFormValues; categories: { id: string; name: string }[] }) {
   const router = useRouter();
   const [v, setV] = useState(initial);
+  const [baseline, setBaseline] = useState(initial);
   const [slugTouched, setSlugTouched] = useState(Boolean(id));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pending, setPending] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState(0);
   const [urlInput, setUrlInput] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+  const dirty = JSON.stringify(v) !== JSON.stringify(baseline);
+  useUnsavedChangesGuard(dirty);
+
+  useEffect(() => {
+    if (!saved) return;
+    const t = setTimeout(() => setSaved(false), 2000);
+    return () => clearTimeout(t);
+  }, [saved]);
 
   const set = <K extends keyof ProductFormValues>(k: K, val: ProductFormValues[K]) => setV((s) => ({ ...s, [k]: val }));
 
@@ -85,7 +97,11 @@ export function ProductForm({ id, initial, categories }: { id: string | null; in
     }
     toast.success("Product saved");
     if (!id && res.data) router.replace(`/admin/products/${res.data.id}`);
-    else router.refresh();
+    else {
+      setBaseline(v);
+      setSaved(true);
+      router.refresh();
+    }
   }
 
   const F = ({ k }: { k: string }) => (errors[k] ? <p className="field-error">{errors[k]}</p> : null);
@@ -124,6 +140,7 @@ export function ProductForm({ id, initial, categories }: { id: string | null; in
             <h2 className="font-sans text-base font-semibold">Images</h2>
             <span className="text-sm text-muted">{v.images.length}/8, first image is the cover</span>
           </div>
+          <p className="mt-1 text-xs text-muted">Images are attached when you save.</p>
           <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {v.images.map((img, i) => (
               <li key={(img.publicId ?? img.url ?? "") + i} className="rounded-md border border-line p-2">
@@ -190,7 +207,15 @@ export function ProductForm({ id, initial, categories }: { id: string | null; in
           <div><label htmlFor="p-color" className="label-text">Finish or colour</label><input id="p-color" className="field bg-white" value={v.color} maxLength={40} onChange={(e) => set("color", e.target.value)} /></div>
           <div><label htmlFor="p-dim" className="label-text">Dimensions</label><input id="p-dim" className="field bg-white" value={v.dimensions} maxLength={120} onChange={(e) => set("dimensions", e.target.value)} placeholder="W 198 × D 86 × H 82 cm" /></div>
         </section>
-        <button type="submit" className="btn-primary w-full" disabled={pending || uploading > 0}>{pending ? "Saving…" : id ? "Save changes" : "Create product"}</button>
+        <SaveBar
+          dirty={dirty}
+          pending={pending || uploading > 0}
+          saved={saved}
+          creating={!id}
+          saveLabel={id ? "Save changes" : "Create product"}
+          discardConfirm="Discard your changes to this product?"
+          onDiscard={id ? () => setV(baseline) : undefined}
+        />
       </div>
     </form>
   );

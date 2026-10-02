@@ -1,24 +1,43 @@
 "use client";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { deleteCategory, saveCategory } from "@/app/actions/admin";
 import { slugify } from "@/lib/utils";
+import { SaveBar } from "./save-bar";
+import { useUnsavedChangesGuard } from "@/lib/use-unsaved-changes";
 
 type Cat = { id: string; name: string; slug: string; description: string; imageUrl: string | null; position: number; count: number };
+type Values = typeof EMPTY;
 const EMPTY = { name: "", slug: "", description: "", imageUrl: "", position: "0" };
+
+function toValues(c: Cat): Values {
+  return { name: c.name, slug: c.slug, description: c.description, imageUrl: c.imageUrl ?? "", position: String(c.position) };
+}
 
 export function CategoryManager({ items }: { items: Cat[] }) {
   const [editing, setEditing] = useState<string | null>(null);
   const [f, setF] = useState(EMPTY);
+  const [baseline, setBaseline] = useState(EMPTY);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pending, start] = useTransition();
+  const [saved, setSaved] = useState(false);
+  const dirty = editing ? JSON.stringify(f) !== JSON.stringify(baseline) : true;
+  useUnsavedChangesGuard(editing !== null && dirty);
+
+  useEffect(() => {
+    if (!saved) return;
+    const t = setTimeout(() => setSaved(false), 2000);
+    return () => clearTimeout(t);
+  }, [saved]);
 
   const edit = (c: Cat) => {
+    const v = toValues(c);
     setEditing(c.id);
     setErrors({});
-    setF({ name: c.name, slug: c.slug, description: c.description, imageUrl: c.imageUrl ?? "", position: String(c.position) });
+    setF(v);
+    setBaseline(v);
   };
-  const reset = () => { setEditing(null); setF(EMPTY); setErrors({}); };
+  const reset = () => { setEditing(null); setF(EMPTY); setBaseline(EMPTY); setErrors({}); };
 
   return (
     <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
@@ -51,6 +70,7 @@ export function CategoryManager({ items }: { items: Cat[] }) {
             const r = await saveCategory(editing, f);
             if (!r.ok) { setErrors(r.fieldErrors ?? {}); toast.error(r.error); return; }
             toast.success(r.message ?? "Saved");
+            if (editing) setSaved(true);
             reset();
           });
         }}
@@ -81,7 +101,15 @@ export function CategoryManager({ items }: { items: Cat[] }) {
           <input id="c-pos" inputMode="numeric" className="field max-w-[120px] bg-white" value={f.position} onChange={(e) => setF({ ...f, position: e.target.value.replace(/\D/g, "") })} />
         </div>
         <div className="flex gap-2">
-          <button type="submit" className="btn-primary" disabled={pending}>{pending ? "Saving…" : editing ? "Save changes" : "Add category"}</button>
+          <SaveBar
+            dirty={dirty}
+            pending={pending}
+            saved={saved}
+            creating={!editing}
+            saveLabel={editing ? "Save changes" : "Add category"}
+            discardConfirm="Discard your changes to this category?"
+            onDiscard={editing ? () => { setF(baseline); setErrors({}); } : undefined}
+          />
           {editing && <button type="button" className="btn-outline" onClick={reset}>Cancel</button>}
         </div>
       </form>
