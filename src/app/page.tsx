@@ -5,7 +5,7 @@ import { ProjectsRail } from "@/components/home/projects-rail";
 import { SmartImage } from "@/components/ui/smart-image";
 import { unsplash } from "@/lib/images";
 import { site, whatsappLink } from "@/lib/site";
-import { InstagramIcon, WhatsAppIcon, YouTubeIcon } from "@/components/ui/icons";
+import { InstagramIcon, WhatsAppIcon } from "@/components/ui/icons";
 import { pageMeta } from "@/lib/seo";
 
 export const revalidate = 300;
@@ -129,10 +129,7 @@ export default async function HomePage() {
         </div>
         <div className="mt-10 flex flex-col items-start justify-between gap-4 border-t border-line pt-8 sm:flex-row sm:items-center">
           <p className="text-lg">Follow new pieces and project walkthroughs</p>
-          <div className="flex gap-3">
-            <a href={site.socials.instagram} target="_blank" rel="noopener noreferrer" className="btn-outline min-h-10 px-4"><InstagramIcon className="h-4 w-4" /> Instagram</a>
-            <a href={site.socials.youtube} target="_blank" rel="noopener noreferrer" className="btn-outline min-h-10 px-4"><YouTubeIcon className="h-4 w-4" /> YouTube</a>
-          </div>
+          <a href={site.socials.instagram} target="_blank" rel="noopener noreferrer" className="btn-outline min-h-10 px-4"><InstagramIcon className="h-4 w-4" /> Instagram</a>
         </div>
       </section>
     </>

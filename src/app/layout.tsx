@@ -19,7 +19,6 @@ export const metadata: Metadata = {
   applicationName: site.name,
   openGraph: { siteName: site.name, locale: site.locale, type: "website" },
   formatDetection: { telephone: false },
-  icons: { icon: "/icon.svg" },
 };
 
 export const viewport: Viewport = {

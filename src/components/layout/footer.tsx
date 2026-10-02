@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { site } from "@/lib/site";
-import { FacebookIcon, InstagramIcon, YouTubeIcon } from "@/components/ui/icons";
+import Image from "next/image";
+import { MapPin } from "lucide-react";
+import { mapsLink, site } from "@/lib/site";
+import { InstagramIcon } from "@/components/ui/icons";
 
 const cols = [
   {
@@ -36,19 +38,42 @@ export function Footer() {
     <footer className="mt-24 bg-sheesham pb-28 text-paper/80 lg:pb-0">
       <div className="container-x grid gap-12 py-16 md:grid-cols-[1.4fr_repeat(3,1fr)]">
         <div className="max-w-sm">
-          <p className="font-display text-3xl text-paper sm:text-4xl">Wood &amp; Wonders</p>
+          <div className="inline-block rounded-xl bg-paper p-3">
+            <Image src="/brand/logo-on-white.png" alt="Wood & Wonders" width={600} height={428} className="h-16 w-auto sm:h-20" />
+          </div>
           <p className="mt-4 leading-relaxed">{site.description}</p>
-          <address className="mt-6 not-italic leading-relaxed">
-            {site.address.street}, {site.address.city} {site.address.postalCode}
+          <address className="mt-6 not-italic leading-relaxed [overflow-wrap:anywhere]">
+            {site.addressLines.map((line) => (
+              <span key={line} className="block">{line}</span>
+            ))}
+            <a href={mapsLink()} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1.5 text-paper underline underline-offset-4 hover:no-underline">
+              <MapPin className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} /> Get directions
+            </a>
             <br />
             <a href={`tel:${site.phone.replace(/\s/g, "")}`} className="hover:text-paper">{site.phone}</a>
             <br />
-            <a href={`mailto:${site.email}`} className="hover:text-paper">{site.email}</a>
+            <a href={`mailto:${site.email}`} className="break-words hover:text-paper">{site.email}</a>
           </address>
-          <div className="mt-6 flex gap-1">
-            <a href={site.socials.instagram} target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="rounded-full p-2.5 hover:bg-paper/10 hover:text-paper"><InstagramIcon className="h-5 w-5" /></a>
-            <a href={site.socials.facebook} target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="rounded-full p-2.5 hover:bg-paper/10 hover:text-paper"><FacebookIcon className="h-5 w-5" /></a>
-            <a href={site.socials.youtube} target="_blank" rel="noopener noreferrer" aria-label="YouTube" className="rounded-full p-2.5 hover:bg-paper/10 hover:text-paper"><YouTubeIcon className="h-5 w-5" /></a>
+          <div className="mt-6">
+            <a
+              href={site.socials.instagram}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 hover:text-paper lg:hidden"
+            >
+              <InstagramIcon className="h-5 w-5" /> Follow us on Instagram
+            </a>
+            <div className="hidden items-center gap-3 lg:flex">
+              <div className="rounded-lg bg-paper p-2">
+                <Image src="/brand/instagram-qr.svg" alt="QR code to the Wood & Wonders Instagram profile" width={120} height={120} className="h-[120px] w-[120px]" unoptimized />
+              </div>
+              <div>
+                <a href={site.socials.instagram} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:text-paper">
+                  <InstagramIcon className="h-4 w-4" /> {site.socials.instagramHandle}
+                </a>
+                <p className="mt-1 text-sm">Scan to follow us<br />on Instagram</p>
+              </div>
+            </div>
           </div>
         </div>
         {cols.map((c) => (

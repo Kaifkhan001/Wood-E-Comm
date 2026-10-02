@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
@@ -8,7 +9,7 @@ import { nav, site, whatsappLink } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { CartButton } from "@/components/cart/cart-button";
 import { useSession } from "@/lib/auth-client";
-import { InstagramIcon, FacebookIcon, YouTubeIcon, WhatsAppIcon } from "@/components/ui/icons";
+import { InstagramIcon, WhatsAppIcon } from "@/components/ui/icons";
 
 export function Header() {
   const pathname = usePathname();
@@ -38,8 +39,8 @@ export function Header() {
       )}
     >
       <div className="container-x flex h-16 items-center justify-between gap-4 lg:h-20">
-        <Link href="/" className="shrink-0 font-display text-lg leading-none tracking-tight text-sheesham sm:text-2xl lg:text-[26px]" aria-label={`${site.name} home`}>
-          Wood &amp; Wonders
+        <Link href="/" className="shrink-0" aria-label="Wood & Wonders home">
+          <Image src="/brand/logo.png" alt="Wood & Wonders" width={600} height={428} priority className="h-11 w-auto lg:h-16" />
         </Link>
 
         <nav aria-label="Main" className="hidden lg:block">
@@ -112,7 +113,7 @@ export function Header() {
               transition={{ type: "tween", duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
             >
               <div className="flex h-16 items-center justify-between px-5">
-                <span className="font-display text-xl text-sheesham">Wood &amp; Wonders</span>
+                <Image src="/brand/logo.png" alt="Wood & Wonders" width={600} height={428} className="h-10 w-auto" />
                 <button type="button" className="inline-flex h-11 w-11 items-center justify-center rounded-full hover:bg-ink/5" onClick={() => setOpen(false)} aria-label="Close menu">
                   <X className="h-5 w-5" />
                 </button>
@@ -138,11 +139,9 @@ export function Header() {
                 <a href={whatsappLink("Hi Wood & Wonders, I'd like to know more about your furniture and interiors.")} target="_blank" rel="noopener noreferrer" className="btn-primary w-full">
                   <WhatsAppIcon className="h-5 w-5" /> Chat on WhatsApp
                 </a>
-                <div className="flex justify-center gap-2 text-muted">
-                  <a href={site.socials.instagram} target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="p-2.5 hover:text-bottle"><InstagramIcon className="h-5 w-5" /></a>
-                  <a href={site.socials.facebook} target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="p-2.5 hover:text-bottle"><FacebookIcon className="h-5 w-5" /></a>
-                  <a href={site.socials.youtube} target="_blank" rel="noopener noreferrer" aria-label="YouTube" className="p-2.5 hover:text-bottle"><YouTubeIcon className="h-5 w-5" /></a>
-                </div>
+                <a href={site.socials.instagram} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 p-2.5 text-muted hover:text-bottle">
+                  <InstagramIcon className="h-5 w-5" /> Follow {site.socials.instagramHandle}
+                </a>
               </div>
             </motion.div>
           </>

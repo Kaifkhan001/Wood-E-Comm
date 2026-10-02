@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { requireAdmin } from "@/lib/session";
 import { AdminNav } from "@/components/admin/admin-nav";
 import { SignOutButton } from "@/components/auth/sign-out-button";
@@ -13,7 +14,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <div className="min-h-dvh bg-paper lg:grid lg:grid-cols-[240px_1fr]">
       <aside className="border-b border-line bg-bottle text-paper lg:sticky lg:top-0 lg:h-dvh lg:border-b-0">
         <div className="flex flex-col gap-1 px-5 py-4 sm:flex-row sm:items-center sm:justify-between lg:block lg:py-6">
-          <Link href="/admin" className="font-display text-xl leading-tight lg:text-2xl">Wood &amp; Wonders <span className="font-sans text-sm text-paper/60">admin</span></Link>
+          <Link href="/admin" className="flex items-center gap-2">
+            <span className="rounded-md bg-paper p-1"><Image src="/brand/logo-on-white.png" alt="Wood & Wonders" width={600} height={428} className="h-10 w-auto" /></span>
+            <span className="font-sans text-sm text-paper/60">admin</span>
+          </Link>
           <Link href="/" className="text-sm text-paper/70 hover:text-paper lg:mt-1 lg:block">View store</Link>
         </div>
         <div className="flex items-center justify-between border-y border-paper/10 px-5 py-2 text-xs text-paper/70 lg:hidden">
