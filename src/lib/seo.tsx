@@ -40,9 +40,9 @@ export function organizationJsonLd() {
     name: site.name,
     url: site.url,
     email: site.email,
-    telephone: site.phone,
+    telephone: `+${site.whatsapp}`,
     description: site.description,
-    image: `${site.url}/og.png`,
+    image: `${site.url}/brand/logo.png`,
     address: {
       "@type": "PostalAddress",
       streetAddress: site.address.street,
@@ -52,7 +52,7 @@ export function organizationJsonLd() {
       addressCountry: site.address.country,
     },
     areaServed: "IN",
-    sameAs: Object.values(site.socials),
+    sameAs: [site.socials.instagram],
   };
 }
 

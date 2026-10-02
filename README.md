@@ -2,7 +2,7 @@
 
 Furniture store and interior-design studio website. Next.js 16 (App Router), Postgres (Neon) with Drizzle, Better Auth, Cloudinary, Tailwind CSS v4.
 
-Business details (contact, socials, WhatsApp number) live in `src/lib/site.ts`; the wordmark is in `src/components/layout/header.tsx` and `footer.tsx`.
+Business details (contact, socials, WhatsApp number) live in `src/lib/site.ts`. The logo is a registered trademark (`public/brand/logo-master.png`); every place it appears (`src/app/icon.png`, `apple-icon.png`, `opengraph-image.png`, `public/brand/logo.png`, `logo-on-white.png`, `instagram-qr.svg`) is generated from it by `node scripts/brand-assets.mjs` — never edit those files by hand, edit the master and re-run the script. That script uses `sharp` (image processing) and `qrcode` (QR generation), both devDependencies since they only run at build-asset time, not in the app itself. The swipeable product galleries use `embla-carousel-react` (~6KB gzip, a runtime dependency).
 
 ## What's in it
 
@@ -71,7 +71,7 @@ Quote requests, order requests and contact messages email the owner instantly (a
 2. Add and verify your sending domain (Resend gives you DNS records — SPF/DKIM — to add at your registrar; verification can take a few minutes to a few hours).
 3. Create an API key (Dashboard → API Keys).
 4. Set `RESEND_API_KEY`, `EMAIL_FROM` (e.g. `"Wood & Wonders <hello@yourdomain.in>"`, must use your verified domain), and `OWNER_NOTIFY_EMAIL` (where owner notifications go).
-5. Before your domain is verified, Resend's shared test sender `onboarding@resend.dev` can only deliver to the email address on your own Resend account — useful for a first smoke test, not for real customers.
+5. `OWNER_NOTIFY_EMAIL` can be a plain Gmail address (e.g. `woodwonderind@gmail.com`) — that's just the inbox notifications arrive at. `EMAIL_FROM` is different: Resend can only *send* from a domain you own and have verified with it, never from someone else's domain like `gmail.com`. Until you verify a domain, Resend's shared test sender `onboarding@resend.dev` can only deliver to the email address on your own Resend account — useful for a first smoke test, not for real customers.
 6. Once `RESEND_API_KEY` is set, consider setting `requireEmailVerification: true` in `src/lib/auth.ts` so new accounts must confirm their email.
 
 ## Deploy to Vercel
@@ -117,6 +117,7 @@ Use `wood_and_wonders_app` in Vercel's `DATABASE_URL`. Keep the owner role only 
 | `npm run db:seed` | Load demo data (clears catalogue and projects) |
 | `npm run make-admin -- email` | Promote an existing account to admin |
 | `npm run secrets:scan` | Scan all git history for leaked secrets |
+| `node scripts/brand-assets.mjs` | Regenerate every derived logo/QR asset from `public/brand/logo-master.png` (re-run after replacing the master) |
 
 ## Project map
 
