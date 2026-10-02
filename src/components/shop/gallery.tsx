@@ -109,7 +109,7 @@ function MainViewer({
       )}
 
       <div
-        className="group/gallery relative aspect-[4/5] flex-1 overflow-hidden rounded-sm bg-cane/30 focus:outline-none"
+        className="group/gallery relative aspect-[4/5] w-full min-w-0 flex-1 overflow-hidden rounded-sm bg-cane/30 focus:outline-none"
         tabIndex={multi ? 0 : -1}
         role="group"
         aria-roledescription="carousel"

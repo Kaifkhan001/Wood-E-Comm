@@ -36,13 +36,13 @@ export function CartView() {
             <Link href={`/product/${r.slug}`} className="relative h-28 w-24 shrink-0 overflow-hidden rounded-sm bg-cane/30">
               {r.images[0] && <SmartImage src={imageSrc(r.images[0], 300)} alt={r.name} fill sizes="96px" className="object-cover" />}
             </Link>
-            <div className="flex flex-1 flex-col justify-between gap-3 sm:flex-row">
-              <div>
-                <Link href={`/product/${r.slug}`} className="font-medium hover:text-bottle">{r.name}</Link>
+            <div className="flex min-w-0 flex-1 flex-col justify-between gap-3 sm:flex-row">
+              <div className="min-w-0">
+                <Link href={`/product/${r.slug}`} className="font-medium break-words hover:text-bottle">{r.name}</Link>
                 <p className="mt-1 text-sm text-muted tabular-nums">{formatINR(r.price)} each</p>
                 {r.stock < r.quantity && <p className="mt-1 text-sm text-danger">Only {r.stock} in stock</p>}
               </div>
-              <div className="flex items-center gap-4 sm:flex-col sm:items-end">
+              <div className="flex flex-wrap items-center gap-4 sm:flex-col sm:flex-nowrap sm:items-end">
                 <div className="flex items-center rounded-full border border-line" role="group" aria-label={`Quantity for ${r.name}`}>
                   <button type="button" className="flex h-10 w-10 items-center justify-center" onClick={() => cart.setQty(r.id, r.quantity - 1)} aria-label="Decrease"><Minus className="h-4 w-4" /></button>
                   <span className="w-6 text-center tabular-nums">{r.quantity}</span>

@@ -57,7 +57,7 @@ export function CheckoutForm({ defaultName }: { defaultName: string }) {
         <h2 className="font-sans text-lg font-semibold">Your order</h2>
         <ul className="mt-4 space-y-3 text-[15px]">
           {rows.map((r) => (
-            <li key={r.id} className="flex justify-between gap-3"><span>{r.name} × {r.quantity}</span><span className="tabular-nums">{formatINR(r.price * r.quantity)}</span></li>
+            <li key={r.id} className="flex justify-between gap-3"><span className="min-w-0 break-words">{r.name} × {r.quantity}</span><span className="shrink-0 tabular-nums">{formatINR(r.price * r.quantity)}</span></li>
           ))}
         </ul>
         <div className="mt-4 flex justify-between border-t border-line pt-4 text-lg font-semibold"><span>Estimated total</span><span className="tabular-nums">{formatINR(subtotal)}</span></div>

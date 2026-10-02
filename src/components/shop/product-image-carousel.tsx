@@ -68,7 +68,7 @@ export function ProductImageCarousel({ images, name, priority }: { images: Img[]
 
   return (
     <div
-      className="group/card relative aspect-[4/5] overflow-hidden rounded-sm bg-cane/30"
+      className="group/card relative aspect-[4/5] w-full min-w-0 overflow-hidden rounded-sm bg-cane/30"
       onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave}
     >

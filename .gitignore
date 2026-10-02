@@ -20,3 +20,5 @@ coverage/
 CLAUDE.md
 CLAUDE.local.md
 .mcp.json
+# overflow-check screenshots (scripts/check-overflow.mjs)
+.screenshots/
