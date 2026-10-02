@@ -69,7 +69,7 @@ export async function CatalogView({ searchParams, category }: { searchParams: SP
         <Suspense fallback={null}>
           <FilterSidebar materials={materials} bounds={bounds} />
         </Suspense>
-        <div>
+        <div className="min-w-0">
           <Suspense fallback={<div className="skeleton h-11 w-full" />}>
             <Toolbar materials={materials} bounds={bounds} total={total} />
           </Suspense>
@@ -111,7 +111,7 @@ export function CatalogSkeleton() {
       <div className="mt-8 flex gap-2">{Array.from({ length: 6 }).map((_, i) => <div key={i} className="skeleton h-10 w-24 rounded-full" />)}</div>
       <div className="mt-10 grid gap-10 lg:grid-cols-[240px_1fr]">
         <div className="hidden space-y-3 lg:block">{Array.from({ length: 8 }).map((_, i) => <div key={i} className="skeleton h-5 w-full" />)}</div>
-        <div>
+        <div className="min-w-0">
           <div className="skeleton h-11 w-full" />
           <ul className="mt-8 grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-3 lg:grid-cols-4 lg:gap-x-6">
             {Array.from({ length: 8 }).map((_, i) => (
