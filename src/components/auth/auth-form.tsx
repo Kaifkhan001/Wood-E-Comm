@@ -19,7 +19,10 @@ function friendly(code?: string, message?: string) {
 }
 
 export function AuthForm({ mode, next, googleEnabled }: { mode: "login" | "signup"; next?: string; googleEnabled: boolean }) {
-  const dest = safeNext(next);
+  // Sanitised but with no forced fallback here: the role-aware default (admin -> /admin,
+  // customer -> /) is decided server-side by /auth/continue once we know who signed in.
+  const safePath = next ? safeNext(next, "") : "";
+  const continueUrl = `/auth/continue?next=${encodeURIComponent(safePath)}`;
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -42,7 +45,7 @@ export function AuthForm({ mode, next, googleEnabled }: { mode: "login" | "signu
       return setError(friendly(res.error.code, res.error.message));
     }
     // Full navigation so every server component sees the new session cookie.
-    window.location.assign(dest);
+    window.location.assign(continueUrl);
   }
 
   return (
@@ -57,7 +60,7 @@ export function AuthForm({ mode, next, googleEnabled }: { mode: "login" | "signu
           <button
             type="button"
             className="btn-outline mt-8 w-full bg-paper"
-            onClick={() => signIn.social({ provider: "google", callbackURL: dest })}
+            onClick={() => signIn.social({ provider: "google", callbackURL: continueUrl })}
           >
             <GoogleIcon className="h-5 w-5" /> Continue with Google
           </button>
@@ -86,7 +89,7 @@ export function AuthForm({ mode, next, googleEnabled }: { mode: "login" | "signu
 
       <p className="mt-6 text-[15px] text-muted">
         {mode === "login" ? "New here? " : "Already have an account? "}
-        <Link href={`${mode === "login" ? "/signup" : "/login"}${next ? `?next=${encodeURIComponent(dest)}` : ""}`} className="text-ink underline underline-offset-4">
+        <Link href={`${mode === "login" ? "/signup" : "/login"}${safePath ? `?next=${encodeURIComponent(safePath)}` : ""}`} className="text-ink underline underline-offset-4">
           {mode === "login" ? "Create an account" : "Sign in"}
         </Link>
       </p>

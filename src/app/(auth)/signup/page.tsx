@@ -9,6 +9,6 @@ export const metadata = pageMeta({ title: "Create an account", description: "Cre
 
 export default async function SignupPage({ searchParams }: PageProps<"/signup">) {
   const { next } = await searchParams;
-  if (await getSession()) redirect(safeNext(next));
+  if (await getSession()) redirect(`/auth/continue?next=${encodeURIComponent(safeNext(next, ""))}`);
   return <AuthForm mode="signup" next={typeof next === "string" ? next : undefined} googleEnabled={isGoogleEnabled} />;
 }

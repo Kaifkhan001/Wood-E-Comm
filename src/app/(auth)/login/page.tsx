@@ -9,6 +9,8 @@ export const metadata = pageMeta({ title: "Sign in", description: "Sign in to tr
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const { next } = await searchParams;
-  if (await getSession()) redirect(safeNext(next));
+  // A real, validated session only (never the proxy's cookie-existence check), so a
+  // stale/expired cookie can never bounce a signed-out visitor back here in a loop.
+  if (await getSession()) redirect(`/auth/continue?next=${encodeURIComponent(safeNext(next, ""))}`);
   return <AuthForm mode="login" next={typeof next === "string" ? next : undefined} googleEnabled={isGoogleEnabled} />;
 }
