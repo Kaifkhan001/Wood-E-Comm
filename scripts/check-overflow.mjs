@@ -11,7 +11,7 @@ import { mkdir } from "node:fs/promises";
 import { chromium } from "playwright";
 
 const BASE = process.env.BASE_URL || "http://localhost:3002";
-const WIDTHS = [320, 360, 375, 390, 414, 768, 1024, 1280];
+const WIDTHS = [320, 360, 375, 390, 412, 768, 1024, 1280];
 const SHOT_DIR = ".screenshots";
 
 const CUSTOMER = { email: "qa-customer@example.com", password: "TestPass1234" };
@@ -97,7 +97,12 @@ const EVALUATE_OVERFLOW = () => {
     return false;
   }
   const vw = window.innerWidth;
-  const scrollWidth = document.documentElement.scrollWidth;
+  // document.body.scrollWidth, not document.documentElement.scrollWidth: with the
+  // project's overflow-x: clip safety net on both html and body, a deeply nested
+  // overflow-x: auto scroller (e.g. the admin nav's horizontal rail) can make
+  // documentElement report a larger scrollWidth than anything actually visible or
+  // scrollable to a real user -- body's figure matches what a user experiences.
+  const scrollWidth = document.body.scrollWidth;
   const bodyOverflow = scrollWidth > vw + 1;
   const offenders = [];
   document.querySelectorAll("body *").forEach((el) => {
@@ -180,6 +185,18 @@ async function main() {
 
   const specs = [
     { name: "home", path: "/" },
+    {
+      name: "home-mobile-menu-open",
+      path: "/",
+      setup: async (page, width) => {
+        page.once("load", async () => {
+          if (width >= 1024) return;
+          const btn = page.getByRole("button", { name: /open menu/i }).first();
+          if (await btn.count()) await btn.click().catch(() => {});
+          await page.waitForTimeout(500).catch(() => {});
+        });
+      },
+    },
     { name: "furniture", path: "/furniture" },
     {
       name: "furniture-sofas-filtered",
@@ -211,11 +228,27 @@ async function main() {
     { name: "not-found", path: "/this-page-does-not-exist" },
     { name: "admin-dashboard", path: "/admin", cookies: adminCookies },
     { name: "admin-products", path: "/admin/products", cookies: adminCookies },
+    { name: "admin-products-filtered", path: "/admin/products?q=sofa", cookies: adminCookies },
+    { name: "admin-product-new", path: "/admin/products/new", cookies: adminCookies },
     { name: "admin-product-edit", path: `/admin/products/${process.env.QA_PRODUCT_ID}`, cookies: adminCookies },
     { name: "admin-categories", path: "/admin/categories", cookies: adminCookies },
+    {
+      name: "admin-categories-edit",
+      path: "/admin/categories",
+      cookies: adminCookies,
+      setup: async (page) => {
+        page.once("load", async () => {
+          const btn = page.getByRole("button", { name: /^edit$/i }).first();
+          if (await btn.count()) await btn.click().catch(() => {});
+          await page.waitForTimeout(300).catch(() => {});
+        });
+      },
+    },
     { name: "admin-projects", path: "/admin/projects", cookies: adminCookies },
+    { name: "admin-project-new", path: "/admin/projects/new", cookies: adminCookies },
     { name: "admin-customers", path: "/admin/customers", cookies: adminCookies },
     { name: "admin-orders", path: "/admin/orders", cookies: adminCookies },
+    { name: "admin-orders-cancelled", path: "/admin/orders?status=cancelled", cookies: adminCookies },
     { name: "admin-order-detail", path: `/admin/orders/${process.env.QA_ORDER_ID}`, cookies: adminCookies },
     {
       name: "admin-quotes-expanded",
@@ -229,6 +262,7 @@ async function main() {
       },
     },
     { name: "admin-messages", path: "/admin/messages", cookies: adminCookies },
+    { name: "admin-messages-leads", path: "/admin/messages?tab=leads", cookies: adminCookies },
   ];
 
   const report = [];

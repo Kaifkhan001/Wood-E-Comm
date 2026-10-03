@@ -30,8 +30,8 @@ export default async function AdminOrder({ params }: PageProps<"/admin/orders/[i
             <ul className="mt-3 divide-y divide-line text-[15px]">
               {o.items.map((it) => (
                 <li key={it.id} className="flex justify-between gap-4 py-3">
-                  <span>{it.productId ? <Link href={`/admin/products/${it.productId}`} className="hover:underline">{it.productName}</Link> : it.productName} × {it.quantity}<br /><span className="text-sm text-muted">{formatINR(it.unitPrice)} each at time of order</span></span>
-                  <span className="tabular-nums">{formatINR(it.unitPrice * it.quantity)}</span>
+                  <span className="min-w-0 break-words">{it.productId ? <Link href={`/admin/products/${it.productId}`} className="hover:underline">{it.productName}</Link> : it.productName} × {it.quantity}<br /><span className="text-sm text-muted">{formatINR(it.unitPrice)} each at time of order</span></span>
+                  <span className="shrink-0 tabular-nums">{formatINR(it.unitPrice * it.quantity)}</span>
                 </li>
               ))}
             </ul>
@@ -40,10 +40,10 @@ export default async function AdminOrder({ params }: PageProps<"/admin/orders/[i
           <Card>
             <h2 className="font-sans text-base font-semibold">Customer</h2>
             <dl className="mt-3 grid gap-x-6 gap-y-2 text-[15px] sm:grid-cols-[120px_1fr]">
-              <dt className="text-muted">Name</dt><dd>{o.customerName}</dd>
-              <dt className="text-muted">Phone</dt><dd><a href={`tel:+91${o.phone}`} className="underline">{o.phone}</a> <a href={wa} target="_blank" rel="noopener noreferrer" className="ml-2 text-[#1f7a4d] underline">WhatsApp</a></dd>
-              <dt className="text-muted">Email</dt><dd><a href={`mailto:${o.email}`} className="underline">{o.email}</a></dd>
-              <dt className="text-muted">Address</dt><dd>{o.addressLine1}{o.addressLine2 && <><br />{o.addressLine2}</>}<br />{o.city}, {o.state} {o.pincode}</dd>
+              <dt className="text-muted">Name</dt><dd className="min-w-0 break-words">{o.customerName}</dd>
+              <dt className="text-muted">Phone</dt><dd className="min-w-0 break-words"><a href={`tel:+91${o.phone}`} className="underline">{o.phone}</a> <a href={wa} target="_blank" rel="noopener noreferrer" className="ml-2 text-[#1f7a4d] underline">WhatsApp</a></dd>
+              <dt className="text-muted">Email</dt><dd className="min-w-0 break-words"><a href={`mailto:${o.email}`} className="underline">{o.email}</a></dd>
+              <dt className="text-muted">Address</dt><dd className="min-w-0 break-words">{o.addressLine1}{o.addressLine2 && <><br />{o.addressLine2}</>}<br />{o.city}, {o.state} {o.pincode}</dd>
               <dt className="text-muted">Placed</dt><dd>{formatDate(o.createdAt)}</dd>
               {o.notes && <><dt className="text-muted">Notes</dt><dd className="whitespace-pre-line">{o.notes}</dd></>}
             </dl>

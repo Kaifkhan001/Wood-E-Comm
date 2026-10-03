@@ -2,7 +2,7 @@ import Link from "next/link";
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { contactMessages, leads } from "@/db/schema";
-import { Empty, PageHeader, Table } from "@/components/admin/ui";
+import { CardField, CardList, CardRow, Empty, PageHeader, Table } from "@/components/admin/ui";
 import { ResolveButton } from "@/components/admin/message-actions";
 import { cn, formatDate } from "@/lib/utils";
 
@@ -24,9 +24,9 @@ export default async function AdminMessages({ searchParams }: PageProps<"/admin/
       <PageHeader title="Messages and leads">
         {tab === "leads" && <a href="/api/admin/leads" className="btn-outline">Download CSV</a>}
       </PageHeader>
-      <nav aria-label="Sections" className="-mx-1 mb-5 flex flex-wrap gap-1">
+      <nav aria-label="Sections" className="-mx-1 mb-5 flex gap-1 overflow-x-auto pb-1 [scrollbar-width:none]">
         {tabs.map((t) => (
-          <Link key={t.key} href={t.href} aria-current={tab === t.key ? "page" : undefined} className={cn("rounded-full px-3 py-1.5 text-sm", tab === t.key ? "bg-bottle text-paper" : "hover:bg-ink/5")}>{t.label}</Link>
+          <Link key={t.key} href={t.href} aria-current={tab === t.key ? "page" : undefined} className={cn("shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-sm", tab === t.key ? "bg-bottle text-paper" : "hover:bg-ink/5")}>{t.label}</Link>
         ))}
       </nav>
       {tab === "leads" ? <Leads /> : <Messages resolved={tab === "replied"} />}
@@ -63,18 +63,30 @@ async function Leads() {
   const rows = await db.select().from(leads).orderBy(desc(leads.createdAt)).limit(500);
   if (!rows.length) return <Empty>No offer sign-ups yet. They come from the discount popup.</Empty>;
   return (
-    <Table>
-      <thead><tr><th>Mobile</th><th>Source</th><th>Consent</th><th>Signed up</th></tr></thead>
-      <tbody>
+    <>
+      <CardList className="md:hidden">
         {rows.map((l) => (
-          <tr key={l.id}>
-            <td><a href={`https://wa.me/91${l.phone}`} target="_blank" rel="noopener noreferrer" className="hover:underline">{l.phone}</a></td>
-            <td>{l.source === "discount_popup" ? "Discount popup" : l.source}</td>
-            <td>{l.consent ? "Yes" : "No"}</td>
-            <td>{formatDate(l.createdAt)}</td>
-          </tr>
+          <CardRow key={l.id}>
+            <a href={`https://wa.me/91${l.phone}`} target="_blank" rel="noopener noreferrer" className="relative z-10 font-medium hover:underline">{l.phone}</a>
+            <CardField label="Source">{l.source === "discount_popup" ? "Discount popup" : l.source}</CardField>
+            <CardField label="Consent">{l.consent ? "Yes" : "No"}</CardField>
+            <CardField label="Signed up">{formatDate(l.createdAt)}</CardField>
+          </CardRow>
         ))}
-      </tbody>
-    </Table>
+      </CardList>
+      <Table className="hidden md:block">
+        <thead><tr><th>Mobile</th><th>Source</th><th>Consent</th><th>Signed up</th></tr></thead>
+        <tbody>
+          {rows.map((l) => (
+            <tr key={l.id}>
+              <td><a href={`https://wa.me/91${l.phone}`} target="_blank" rel="noopener noreferrer" className="hover:underline">{l.phone}</a></td>
+              <td>{l.source === "discount_popup" ? "Discount popup" : l.source}</td>
+              <td>{l.consent ? "Yes" : "No"}</td>
+              <td>{formatDate(l.createdAt)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+    </>
   );
 }

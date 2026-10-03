@@ -2,7 +2,7 @@ import Link from "next/link";
 import { desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { account, orders, user } from "@/db/schema";
-import { Empty, PageHeader, Table } from "@/components/admin/ui";
+import { CardField, CardList, CardRow, Empty, PageHeader, Table } from "@/components/admin/ui";
 import { formatDate, formatINR } from "@/lib/utils";
 
 export const metadata = { title: "Customers" };
@@ -43,22 +43,38 @@ export default async function AdminCustomers({ searchParams }: PageProps<"/admin
       {rows.length === 0 ? (
         <Empty>No customers {q ? `matching "${q}"` : "yet"}.</Empty>
       ) : (
-        <Table>
-          <thead><tr><th>Customer</th><th>Joined</th><th>Sign-up</th><th>Orders</th><th>Confirmed total</th></tr></thead>
-          <tbody>
+        <>
+          <CardList className="md:hidden">
             {rows.map((c) => (
-              <tr key={c.id}>
-                <td><p className="font-medium">{c.name}</p><p className="text-muted">{c.email}</p></td>
-                <td>{formatDate(c.createdAt)}</td>
-                <td>{c.hasGoogle ? "Google" : "Email"}</td>
-                <td className="tabular-nums">
-                  {c.orderCount > 0 ? <Link href={`/admin/orders?userId=${c.id}`} className="underline underline-offset-4 hover:no-underline">{c.orderCount}</Link> : 0}
-                </td>
-                <td className="tabular-nums">{formatINR(c.confirmedTotal)}</td>
-              </tr>
+              <CardRow key={c.id}>
+                <p className="font-medium">{c.name}</p>
+                <p className="break-words text-muted">{c.email}</p>
+                <CardField label="Joined">{formatDate(c.createdAt)}</CardField>
+                <CardField label="Sign-up">{c.hasGoogle ? "Google" : "Email"}</CardField>
+                <CardField label="Orders">
+                  {c.orderCount > 0 ? <Link href={`/admin/orders?userId=${c.id}`} className="relative z-10 tabular-nums underline underline-offset-4 hover:no-underline">{c.orderCount}</Link> : <span className="tabular-nums">0</span>}
+                </CardField>
+                <CardField label="Confirmed total"><span className="tabular-nums">{formatINR(c.confirmedTotal)}</span></CardField>
+              </CardRow>
             ))}
-          </tbody>
-        </Table>
+          </CardList>
+          <Table className="hidden md:block">
+            <thead><tr><th>Customer</th><th>Joined</th><th>Sign-up</th><th>Orders</th><th>Confirmed total</th></tr></thead>
+            <tbody>
+              {rows.map((c) => (
+                <tr key={c.id}>
+                  <td><p className="font-medium">{c.name}</p><p className="text-muted">{c.email}</p></td>
+                  <td>{formatDate(c.createdAt)}</td>
+                  <td>{c.hasGoogle ? "Google" : "Email"}</td>
+                  <td className="tabular-nums">
+                    {c.orderCount > 0 ? <Link href={`/admin/orders?userId=${c.id}`} className="underline underline-offset-4 hover:no-underline">{c.orderCount}</Link> : 0}
+                  </td>
+                  <td className="tabular-nums">{formatINR(c.confirmedTotal)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        </>
       )}
     </>
   );

@@ -41,10 +41,10 @@ export function CategoryManager({ items }: { items: Cat[] }) {
 
   return (
     <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
-      <ul className="divide-y divide-line rounded-lg border border-line bg-white">
+      <ul className="min-w-0 divide-y divide-line rounded-lg border border-line bg-white">
         {items.map((c) => (
           <li key={c.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
-            <div>
+            <div className="min-w-0 break-words">
               <p className="font-medium">{c.name} <span className="text-sm font-normal text-muted">/furniture/{c.slug}</span></p>
               <p className="text-sm text-muted">{c.count} products, position {c.position}</p>
             </div>
@@ -63,7 +63,7 @@ export function CategoryManager({ items }: { items: Cat[] }) {
 
       <form
         noValidate
-        className="h-fit space-y-4 rounded-lg border border-line bg-white p-5"
+        className="h-fit min-w-0 space-y-4 rounded-lg border border-line bg-white p-5"
         onSubmit={(e) => {
           e.preventDefault();
           start(async () => {

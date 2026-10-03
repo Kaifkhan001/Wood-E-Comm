@@ -140,11 +140,11 @@ export function Toolbar({ materials, bounds, total }: Props) {
           <label htmlFor="shop-search" className="sr-only">Search furniture</label>
           <input ref={searchRef} id="shop-search" type="search" value={q} onChange={(e) => setQ(e.target.value)} maxLength={80} placeholder="Search sofas, teak, cane…" className="field rounded-full pl-10" />
         </form>
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <p className={cn("text-sm text-muted transition-opacity", pending && "opacity-50")} aria-live="polite">
             {total} {total === 1 ? "piece" : "pieces"}
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button type="button" onClick={() => setDrawer(true)} className="btn-outline min-h-10 px-4 lg:hidden">
               <SlidersHorizontal className="h-4 w-4" /> Filters{activeCount ? ` (${activeCount})` : ""}
             </button>

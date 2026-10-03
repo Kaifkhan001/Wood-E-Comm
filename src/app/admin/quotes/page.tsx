@@ -21,10 +21,10 @@ export default async function AdminQuotes({ searchParams }: PageProps<"/admin/qu
   return (
     <>
       <PageHeader title="Interior quotes" />
-      <nav aria-label="Filter by status" className="-mx-1 mb-5 flex flex-wrap gap-1">
-        <Link href="/admin/quotes" className={cn("rounded-full px-3 py-1.5 text-sm", !status ? "bg-bottle text-paper" : "hover:bg-ink/5")}>All</Link>
+      <nav aria-label="Filter by status" className="-mx-1 mb-5 flex gap-1 overflow-x-auto pb-1 [scrollbar-width:none]">
+        <Link href="/admin/quotes" className={cn("shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-sm", !status ? "bg-bottle text-paper" : "hover:bg-ink/5")}>All</Link>
         {quoteStatusEnum.enumValues.map((s) => (
-          <Link key={s} href={`/admin/quotes?status=${s}`} className={cn("rounded-full px-3 py-1.5 text-sm", status === s ? "bg-bottle text-paper" : "hover:bg-ink/5")}>
+          <Link key={s} href={`/admin/quotes?status=${s}`} className={cn("shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-sm", status === s ? "bg-bottle text-paper" : "hover:bg-ink/5")}>
             {STATUS_LABEL[s]} <span className="opacity-60">{byStatus[s] ?? 0}</span>
           </Link>
         ))}
@@ -47,7 +47,7 @@ export default async function AdminQuotes({ searchParams }: PageProps<"/admin/qu
                   <dl className="grid gap-x-6 gap-y-2 text-[15px] sm:grid-cols-[110px_1fr]">
                     <dt className="text-muted">Phone</dt>
                     <dd><a href={`tel:+91${q.phone}`} className="underline">{q.phone}</a> <a href={`https://wa.me/91${q.phone}?text=${encodeURIComponent(`Hi ${q.name.split(" ")[0]}, this is Wood & Wonders about your interior design enquiry.`)}`} target="_blank" rel="noopener noreferrer" className="ml-2 text-[#1f7a4d] underline">WhatsApp</a></dd>
-                    {q.email && <><dt className="text-muted">Email</dt><dd><a href={`mailto:${q.email}`} className="underline">{q.email}</a></dd></>}
+                    {q.email && <><dt className="text-muted">Email</dt><dd className="min-w-0 break-words"><a href={`mailto:${q.email}`} className="underline">{q.email}</a></dd></>}
                     <dt className="text-muted">Scope</dt><dd>{q.scope.join(", ")}</dd>
                     <dt className="text-muted">Budget</dt><dd>{q.budget}</dd>
                     <dt className="text-muted">Timeline</dt><dd>{q.timeline}</dd>

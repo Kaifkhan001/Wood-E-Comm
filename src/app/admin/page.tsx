@@ -2,7 +2,7 @@ import Link from "next/link";
 import { and, count, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { contactMessages, leads, orders, products, projects, quoteRequests } from "@/db/schema";
-import { Card, PageHeader, StatusPill, Table } from "@/components/admin/ui";
+import { Card, CardField, CardList, CardRow, PageHeader, StatusPill, Table } from "@/components/admin/ui";
 import { formatDate, formatINR, orderNumber } from "@/lib/utils";
 import { SalesChart } from "@/components/admin/sales-chart";
 
@@ -49,7 +49,7 @@ export default async function Dashboard() {
   return (
     <>
       <PageHeader title="Dashboard" />
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 min-[400px]:grid-cols-2 xl:grid-cols-4">
         {stats.map((s) => (
           <Link key={s.label} href={s.href} className="rounded-lg border border-line bg-white p-5 transition-colors hover:border-bottle">
             <p className="text-sm text-muted">{s.label}</p>
@@ -67,21 +67,39 @@ export default async function Dashboard() {
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.6fr_1fr]">
         <section>
           <div className="mb-3 flex items-center justify-between"><h2 className="font-sans text-base font-semibold">Recent orders</h2><Link href="/admin/orders" className="text-sm underline underline-offset-4">All orders</Link></div>
-          <Table>
-            <thead><tr><th>Order</th><th>Customer</th><th>Date</th><th>Total</th><th>Status</th></tr></thead>
-            <tbody>
-              {recent.map((o) => (
-                <tr key={o.id}>
-                  <td><Link href={`/admin/orders/${o.id}`} className="font-medium underline-offset-4 hover:underline">{orderNumber(o.number)}</Link></td>
-                  <td>{o.customerName}<br /><span className="text-muted">{o.city}</span></td>
-                  <td>{formatDate(o.createdAt)}</td>
-                  <td className="tabular-nums">{formatINR(o.subtotal)}</td>
-                  <td><StatusPill status={o.status} /></td>
-                </tr>
-              ))}
-              {!recent.length && <tr><td colSpan={5} className="text-center text-muted">No orders yet</td></tr>}
-            </tbody>
-          </Table>
+          {recent.length ? (
+            <>
+              <CardList className="md:hidden">
+                {recent.map((o) => (
+                  <CardRow key={o.id} href={`/admin/orders/${o.id}`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium">{orderNumber(o.number)}</span>
+                      <StatusPill status={o.status} />
+                    </div>
+                    <CardField label="Customer">{o.customerName}</CardField>
+                    <CardField label="Date">{formatDate(o.createdAt)}</CardField>
+                    <CardField label="Total"><span className="tabular-nums">{formatINR(o.subtotal)}</span></CardField>
+                  </CardRow>
+                ))}
+              </CardList>
+              <Table className="hidden md:block">
+                <thead><tr><th>Order</th><th>Customer</th><th>Date</th><th>Total</th><th>Status</th></tr></thead>
+                <tbody>
+                  {recent.map((o) => (
+                    <tr key={o.id}>
+                      <td><Link href={`/admin/orders/${o.id}`} className="font-medium underline-offset-4 hover:underline">{orderNumber(o.number)}</Link></td>
+                      <td>{o.customerName}<br /><span className="text-muted">{o.city}</span></td>
+                      <td>{formatDate(o.createdAt)}</td>
+                      <td className="tabular-nums">{formatINR(o.subtotal)}</td>
+                      <td><StatusPill status={o.status} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </>
+          ) : (
+            <Card><p className="text-center text-muted">No orders yet</p></Card>
+          )}
         </section>
         <section>
           <h2 className="mb-3 font-sans text-base font-semibold">Running low on stock</h2>

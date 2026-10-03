@@ -18,7 +18,10 @@ const items = [
 export function AdminNav() {
   const pathname = usePathname();
   return (
-    <nav aria-label="Admin" className="overflow-x-auto px-3 pb-3 [scrollbar-width:none] lg:px-3">
+    <nav
+      aria-label="Admin"
+      className="overflow-x-auto px-3 pb-3 [-webkit-mask-image:linear-gradient(to_right,transparent,black_16px,black_calc(100%-16px),transparent)] [mask-image:linear-gradient(to_right,transparent,black_16px,black_calc(100%-16px),transparent)] [scrollbar-width:none] lg:px-3 lg:[-webkit-mask-image:none] lg:[mask-image:none]"
+    >
       <ul className="flex gap-1 lg:flex-col">
         {items.map(({ href, label, icon: Icon }) => {
           const active = href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
