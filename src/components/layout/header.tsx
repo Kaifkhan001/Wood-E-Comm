@@ -135,12 +135,23 @@ export function Header() {
                   ))}
                 </ul>
               </nav>
-              <div className="space-y-4 border-t border-line p-5">
+              <div className="shrink-0 space-y-3 border-t border-line p-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)]">
+                <a
+                  href={site.socials.instagram}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 rounded-lg border border-line p-3 hover:border-bottle"
+                >
+                  <span className="shrink-0 rounded-md bg-paper p-1.5">
+                    <Image src="/brand/instagram-qr.svg" alt="" width={96} height={96} className="h-[72px] w-[72px]" unoptimized aria-hidden />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="flex items-center gap-1.5 font-medium text-ink"><InstagramIcon className="h-4 w-4 shrink-0" /> Follow us on Instagram</span>
+                    <span className="mt-0.5 block text-sm text-muted">{site.socials.instagramHandle}</span>
+                  </span>
+                </a>
                 <a href={whatsappLink("Hi Wood & Wonders, I'd like to know more about your furniture and interiors.")} target="_blank" rel="noopener noreferrer" className="btn-primary w-full">
                   <WhatsAppIcon className="h-5 w-5" /> Chat on WhatsApp
-                </a>
-                <a href={site.socials.instagram} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 p-2.5 text-muted hover:text-bottle">
-                  <InstagramIcon className="h-5 w-5" /> Follow {site.socials.instagramHandle}
                 </a>
               </div>
             </motion.div>
