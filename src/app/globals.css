@@ -73,6 +73,8 @@
   border-radius: 4px;
 }
 @keyframes shimmer { to { background-position: -200% 0; } }
+@keyframes hero-kenburns { from { transform: scale(1); } to { transform: scale(1.05); } }
+@keyframes hero-scroll-cue { 0%, 100% { transform: translateY(0); opacity: 0.6; } 50% { transform: translateY(6px); opacity: 1; } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

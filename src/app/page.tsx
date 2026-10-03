@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { ChevronDown } from "lucide-react";
 import { getCategories, getFeaturedProducts, getProjects } from "@/lib/queries/catalog";
 import { ProductGrid } from "@/components/shop/product-card";
 import { ProjectsRail } from "@/components/home/projects-rail";
+import { HeroSlideshow } from "@/components/home/hero-slideshow";
 import { SmartImage } from "@/components/ui/smart-image";
 import { cloudinaryUrl, unsplash } from "@/lib/images";
 import { site, whatsappLink } from "@/lib/site";
@@ -26,33 +28,34 @@ const STEPS = [
 export default async function HomePage() {
   const [cats, featured, projects] = await Promise.all([getCategories(), getFeaturedProducts(8), getProjects(6)]);
 
+  const heroSlides = projects.length
+    ? projects.slice(0, 3).map((p) => ({ src: cloudinaryUrl(p.coverUrl, 1920, { fit: "cover" }), alt: p.title }))
+    : [{ src: unsplash("photo-1586023492125-27b2c045efd7", 1920), alt: "A living room with a wooden sofa, cane chair and warm lighting" }];
+
   return (
     <>
       {/* Hero */}
-      <section className="container-x grid items-center gap-10 pb-16 pt-6 lg:grid-cols-[1fr_1.2fr] lg:gap-14 lg:pb-24 lg:pt-10">
-        <div className="max-w-xl">
-          <h1 className="text-[46px] leading-[1.02] sm:text-[64px] lg:text-[76px]">Made for homes that are lived in.</h1>
-          <p className="mt-6 max-w-md text-lg leading-relaxed text-muted">
-            Solid-wood furniture from our own workshop, and complete interior design for new flats and renovations in Mumbai.
-          </p>
-          <div className="mt-9 flex flex-wrap gap-3">
-            <Link href="/furniture" className="btn-primary">Shop furniture</Link>
-            <Link href="/get-a-quote" className="btn-outline">Plan your interiors</Link>
+      <section className="relative isolate min-h-[88svh] overflow-hidden lg:min-h-[92svh] lg:max-h-[900px]">
+        <HeroSlideshow slides={heroSlides} />
+        <div className="absolute inset-0 hidden bg-gradient-to-r from-ink/80 via-ink/45 to-transparent lg:block" aria-hidden />
+        <div className="absolute inset-x-0 bottom-0 h-[70%] bg-gradient-to-t from-ink/90 via-ink/55 to-transparent lg:hidden" aria-hidden />
+
+        <div className="container-x absolute inset-0 z-10 flex flex-col justify-end pb-14 lg:justify-center lg:pb-0">
+          <div className="max-w-[640px]">
+            <p className="text-sm font-medium text-paper sm:text-base">Furniture and interiors, Mumbai</p>
+            <h1 className="mt-3 text-[44px] leading-[1.04] text-paper sm:text-[56px] lg:text-[76px]">Timeless pieces, crafted in wood.</h1>
+            <p className="mt-5 max-w-md text-lg leading-relaxed text-paper/90">
+              Solid-wood furniture from our own workshop, and complete interiors for new homes and renovations.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link href="/furniture" className="btn-light">Shop furniture</Link>
+              <Link href="/get-a-quote" className="btn border border-paper text-paper hover:bg-paper/10">Plan your interiors</Link>
+            </div>
           </div>
-          <dl className="mt-12 grid max-w-md grid-cols-3 gap-6 border-t border-line pt-6">
-            <div><dt className="text-sm text-muted">Homes designed</dt><dd className="mt-1 font-display text-3xl">140+</dd></div>
-            <div><dt className="text-sm text-muted">Workshop</dt><dd className="mt-1 font-display text-3xl">Jodhpur</dd></div>
-            <div><dt className="text-sm text-muted">Warranty</dt><dd className="mt-1 font-display text-3xl">1 year</dd></div>
-          </dl>
         </div>
-        <div className="relative">
-          <div className="relative aspect-[5/4] overflow-hidden rounded-sm lg:aspect-[4/4.2]">
-            <SmartImage src={unsplash("photo-1586023492125-27b2c045efd7", 1600)} alt="A living room with a wooden sofa, cane chair and warm lighting" fill priority sizes="(min-width:1024px) 55vw, 100vw" className="object-cover" />
-          </div>
-          <div className="absolute -bottom-6 left-4 max-w-[260px] rounded-md bg-paper p-4 shadow-lg shadow-ink/10 sm:left-8">
-            <p className="text-sm text-muted">Delivered last week</p>
-            <p className="mt-1 font-medium">Kaveri sofa and Varli lounge chair, Andheri West</p>
-          </div>
+
+        <div className="pointer-events-none absolute inset-x-0 bottom-6 z-10 hidden justify-center lg:flex">
+          <ChevronDown className="h-6 w-6 animate-[hero-scroll-cue_2s_ease-in-out_infinite] text-paper/80 motion-reduce:animate-none" aria-hidden />
         </div>
       </section>
 
