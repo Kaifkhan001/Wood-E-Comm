@@ -1,24 +1,20 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ArrowDown, ArrowUp, ImagePlus, Trash2 } from "lucide-react";
 import { saveProduct } from "@/app/actions/admin";
-import { SmartImage } from "@/components/ui/smart-image";
-import { imageSrc } from "@/lib/images";
+import { ImageUploader, StockUrlField, type UploaderImg } from "@/components/admin/image-uploader";
+import { UPLOAD_FOLDER } from "@/lib/cloudinary-folders";
 import { slugify } from "@/lib/utils";
 import { SaveBar } from "./save-bar";
 import { useUnsavedChangesGuard } from "@/lib/use-unsaved-changes";
 
-type Img = { publicId?: string | null; url?: string | null; alt: string };
+type Img = UploaderImg;
 export type ProductFormValues = {
   name: string; slug: string; shortDescription: string; description: string; categoryId: string;
   price: string; mrp: string; material: string; color: string; dimensions: string; stock: string;
   isActive: boolean; isFeatured: boolean; images: Img[];
 };
-
-const MAX_BYTES = 8 * 1024 * 1024;
-const TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif"];
 
 export function ProductForm({ id, initial, categories }: { id: string | null; initial: ProductFormValues; categories: { id: string; name: string }[] }) {
   const router = useRouter();
@@ -29,9 +25,6 @@ export function ProductForm({ id, initial, categories }: { id: string | null; in
   const [pending, setPending] = useState(false);
   const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState(0);
-  const [urlInput, setUrlInput] = useState("");
-  const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
-  const fileRef = useRef<HTMLInputElement>(null);
   const dirty = JSON.stringify(v) !== JSON.stringify(baseline);
   useUnsavedChangesGuard(dirty);
 
@@ -42,42 +35,6 @@ export function ProductForm({ id, initial, categories }: { id: string | null; in
   }, [saved]);
 
   const set = <K extends keyof ProductFormValues>(k: K, val: ProductFormValues[K]) => setV((s) => ({ ...s, [k]: val }));
-
-  async function upload(files: FileList | null) {
-    if (!files?.length) return;
-    for (const file of Array.from(files).slice(0, 8 - v.images.length)) {
-      if (!TYPES.includes(file.type)) { toast.error(`${file.name}: use JPG, PNG, WebP or AVIF.`); continue; }
-      if (file.size > MAX_BYTES) { toast.error(`${file.name} is larger than 8 MB.`); continue; }
-      setUploading((n) => n + 1);
-      try {
-        const sigRes = await fetch("/api/admin/upload-signature", { method: "POST" });
-        const sig = await sigRes.json();
-        if (!sigRes.ok) throw new Error(sig.error || "Upload not allowed");
-        const body = new FormData();
-        body.append("file", file);
-        for (const k of ["api_key", "timestamp", "signature", "folder", "allowed_formats", "transformation"]) body.append(k, String(sig[k]));
-        const up = await fetch(`https://api.cloudinary.com/v1_1/${sig.cloud_name}/image/upload`, { method: "POST", body });
-        const data = await up.json();
-        if (!up.ok) throw new Error(data?.error?.message || "Upload failed");
-        setV((s) => ({ ...s, images: [...s.images, { publicId: data.public_id, url: data.secure_url, alt: s.name }] }));
-      } catch (e) {
-        toast.error((e as Error).message);
-      } finally {
-        setUploading((n) => n - 1);
-      }
-    }
-    if (fileRef.current) fileRef.current.value = "";
-  }
-
-  function move(i: number, dir: -1 | 1) {
-    setV((s) => {
-      const imgs = [...s.images];
-      const j = i + dir;
-      if (j < 0 || j >= imgs.length) return s;
-      [imgs[i], imgs[j]] = [imgs[j], imgs[i]];
-      return { ...s, images: imgs };
-    });
-  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -137,59 +94,15 @@ export function ProductForm({ id, initial, categories }: { id: string | null; in
         </section>
 
         <section className="rounded-lg border border-line bg-white p-5">
-          <div className="flex items-center justify-between">
-            <h2 className="font-sans text-base font-semibold">Images</h2>
-            <span className="text-sm text-muted">{v.images.length}/8, first image is the cover</span>
-          </div>
-          <p className="mt-1 text-xs text-muted">Images are attached when you save.</p>
-          <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {v.images.map((img, i) => (
-              <li key={(img.publicId ?? img.url ?? "") + i} className="rounded-md border border-line p-2">
-                <div className="relative aspect-square overflow-hidden rounded-sm bg-cane/30">
-                  <SmartImage
-                    src={imageSrc(img, 300)}
-                    alt=""
-                    fill
-                    sizes="150px"
-                    className="object-cover"
-                    onError={() => setFailedImages((s) => new Set(s).add(i))}
-                  />
-                  {failedImages.has(i) && (
-                    <span className="absolute left-1 top-1 rounded-full bg-danger px-1.5 py-0.5 text-[10px] font-medium text-white">Image failed to load</span>
-                  )}
-                </div>
-                <input aria-label={`Alt text for image ${i + 1}`} className="mt-2 w-full rounded border border-line px-2 py-1 text-xs" placeholder="Describe the image" value={img.alt} maxLength={160}
-                  onChange={(e) => setV((s) => ({ ...s, images: s.images.map((x, j) => (j === i ? { ...x, alt: e.target.value } : x)) }))} />
-                <div className="mt-1.5 flex justify-between">
-                  <div className="flex">
-                    <button type="button" onClick={() => move(i, -1)} disabled={i === 0} className="p-1.5 disabled:opacity-30" aria-label="Move earlier"><ArrowUp className="h-4 w-4" /></button>
-                    <button type="button" onClick={() => move(i, 1)} disabled={i === v.images.length - 1} className="p-1.5 disabled:opacity-30" aria-label="Move later"><ArrowDown className="h-4 w-4" /></button>
-                  </div>
-                  <button type="button" onClick={() => setV((s) => ({ ...s, images: s.images.filter((_, j) => j !== i) }))} className="p-1.5 text-danger" aria-label="Remove image"><Trash2 className="h-4 w-4" /></button>
-                </div>
-              </li>
-            ))}
-            {v.images.length < 8 && (
-              <li>
-                <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading > 0}
-                  className="flex aspect-square w-full flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-line text-sm text-muted hover:border-bottle hover:text-bottle">
-                  <ImagePlus className="h-6 w-6" />{uploading ? `Uploading ${uploading}…` : "Upload images"}
-                </button>
-                <input ref={fileRef} type="file" accept={TYPES.join(",")} multiple hidden onChange={(e) => upload(e.target.files)} />
-              </li>
-            )}
-          </ul>
-          <details className="mt-4 text-sm">
-            <summary className="cursor-pointer text-muted">Add a stock image by URL (Unsplash or Cloudinary)</summary>
-            <div className="mt-2 flex gap-2">
-              <input className="field bg-white" value={urlInput} onChange={(e) => setUrlInput(e.target.value)} placeholder="https://images.unsplash.com/…" />
-              <button type="button" className="btn-outline" onClick={() => {
-                if (!/^https:\/\/(images\.unsplash\.com|res\.cloudinary\.com)\//.test(urlInput)) return toast.error("Only Unsplash or Cloudinary URLs are allowed.");
-                setV((s) => ({ ...s, images: [...s.images, { url: urlInput, alt: s.name }] }));
-                setUrlInput("");
-              }}>Add</button>
-            </div>
-          </details>
+          <ImageUploader
+            value={v.images}
+            onChange={(images) => set("images", images)}
+            folder={UPLOAD_FOLDER}
+            max={8}
+            altDefault={v.name}
+            onUploadingChange={setUploading}
+          />
+          <StockUrlField onAdd={(url) => setV((s) => ({ ...s, images: [...s.images, { url, alt: s.name }] }))} />
         </section>
       </div>
 
@@ -226,6 +139,7 @@ export function ProductForm({ id, initial, categories }: { id: string | null; in
           saveLabel={id ? "Save changes" : "Create product"}
           discardConfirm="Discard your changes to this product?"
           onDiscard={id ? () => setV(baseline) : undefined}
+          hint={uploading > 0 ? "Waiting for uploads to finish…" : undefined}
         />
       </div>
     </form>

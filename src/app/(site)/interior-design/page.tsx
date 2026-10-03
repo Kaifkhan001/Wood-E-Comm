@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getProjects } from "@/lib/queries/catalog";
 import { SmartImage } from "@/components/ui/smart-image";
+import { cloudinaryUrl } from "@/lib/images";
 import { pageMeta, JsonLd, breadcrumbJsonLd } from "@/lib/seo";
 
 export const revalidate = 300;
@@ -33,7 +34,7 @@ export default async function InteriorsPage() {
           <li key={p.id} className={i % 3 === 0 ? "sm:col-span-2" : ""}>
             <Link href={`/interior-design/${p.slug}`} className="group block">
               <div className={`relative overflow-hidden rounded-sm bg-cane/30 ${i % 3 === 0 ? "aspect-[16/9]" : "aspect-[4/3]"}`}>
-                <SmartImage src={p.coverUrl} alt={p.title} fill priority={i === 0} sizes={i % 3 === 0 ? "100vw" : "(min-width:640px) 50vw, 100vw"} className="object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
+                <SmartImage src={cloudinaryUrl(p.coverUrl, 1200, { fit: "cover" })} alt={p.title} fill priority={i === 0} sizes={i % 3 === 0 ? "100vw" : "(min-width:640px) 50vw, 100vw"} className="object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
               </div>
               <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2">
                 <h2 className="text-2xl leading-tight group-hover:text-bottle sm:text-[28px]">{p.title}</h2>

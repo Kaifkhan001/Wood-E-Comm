@@ -7,7 +7,7 @@ export { UPLOAD_FOLDER, PROJECTS_UPLOAD_FOLDER };
 const ALLOWED_UPLOAD_FOLDERS = [UPLOAD_FOLDER, PROJECTS_UPLOAD_FOLDER];
 // Downscale on ingest so originals never exceed 2400px (keeps storage + bandwidth low).
 export const UPLOAD_TRANSFORMATION = "c_limit,w_2400,h_2400";
-export const ALLOWED_FORMATS = "jpg,jpeg,png,webp,avif";
+export const ALLOWED_FORMATS = "jpg,jpeg,png,webp,avif,heic,heif";
 
 export const cloudinaryConfigured = () => Boolean(env.CLOUDINARY_CLOUD_NAME && env.CLOUDINARY_API_KEY && env.CLOUDINARY_API_SECRET);
 

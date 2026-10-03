@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useRef } from "react";
 import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
 import { SmartImage } from "@/components/ui/smart-image";
+import { cloudinaryUrl } from "@/lib/images";
 
 type Item = { slug: string; title: string; location: string; homeType: string; coverUrl: string };
 
@@ -20,7 +21,7 @@ export function ProjectsRail({ items }: { items: Item[] }) {
   const Card = ({ p, i }: { p: Item; i: number }) => (
     <Link href={`/interior-design/${p.slug}`} className="group block">
       <div className="relative aspect-[4/5] overflow-hidden rounded-sm lg:aspect-[5/6]">
-        <SmartImage src={p.coverUrl} alt={p.title} fill sizes="(min-width:1024px) 40vw, 80vw" className="object-cover transition-transform duration-700 group-hover:scale-[1.03]" priority={i < 2} />
+        <SmartImage src={cloudinaryUrl(p.coverUrl, 900, { fit: "cover" })} alt={p.title} fill sizes="(min-width:1024px) 40vw, 80vw" className="object-cover transition-transform duration-700 group-hover:scale-[1.03]" priority={i < 2} />
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/75 to-transparent p-6 pt-20 text-paper">
           <p className="text-sm text-paper/80">{p.homeType}, {p.location}</p>
           <h3 className="mt-1 text-2xl leading-tight lg:text-[28px]">{p.title}</h3>

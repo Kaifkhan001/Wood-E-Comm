@@ -4,7 +4,8 @@ import { db } from "@/db";
 import { projects } from "@/db/schema";
 import { Empty, PageHeader, Table } from "@/components/admin/ui";
 import { ProjectRowActions } from "@/components/admin/project-row-actions";
-import { SmartImage } from "@/components/ui/smart-image";
+import { AdminImageThumb } from "@/components/admin/image-thumb";
+import { cloudinaryUrl } from "@/lib/images";
 
 export const metadata = { title: "Projects" };
 export const dynamic = "force-dynamic";
@@ -26,7 +27,7 @@ export default async function AdminProjects() {
                 <td>
                   <div className="flex items-center gap-3">
                     <div className="relative h-12 w-16 shrink-0 overflow-hidden rounded-sm bg-cane/30">
-                      <SmartImage src={p.coverUrl} alt="" fill sizes="64px" className="object-cover" />
+                      <AdminImageThumb src={cloudinaryUrl(p.coverUrl, 120, { fit: "cover" })} sizes="64px" className="object-cover" />
                     </div>
                     <Link href={`/admin/projects/${p.id}`} className="font-medium hover:underline">{p.title}</Link>
                   </div>

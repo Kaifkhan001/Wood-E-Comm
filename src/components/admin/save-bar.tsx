@@ -14,6 +14,7 @@ export function SaveBar({
   saveLabel = "Save changes",
   creating = false,
   discardConfirm,
+  hint,
 }: {
   dirty: boolean;
   pending: boolean;
@@ -24,6 +25,8 @@ export function SaveBar({
   creating?: boolean;
   /** If set, confirm() with this text before discarding. */
   discardConfirm?: string;
+  /** Shown above the buttons, e.g. while uploads are still in flight. */
+  hint?: string;
 }) {
   const label = pending ? "Saving…" : saved ? "Saved" : saveLabel;
   const disabled = pending || (!creating && !dirty);
@@ -31,27 +34,29 @@ export function SaveBar({
   return (
     <div
       className={cn(
-        "flex items-center gap-2",
         dirty &&
           "fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-4px_16px_rgba(0,0,0,0.08)] sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none",
       )}
     >
-      <button type="submit" className="btn-primary flex-1 sm:flex-none" disabled={disabled}>
-        {label}
-      </button>
-      {onDiscard && (
-        <button
-          type="button"
-          className="btn-outline flex-1 sm:flex-none"
-          disabled={pending || !dirty}
-          onClick={() => {
-            if (discardConfirm && !confirm(discardConfirm)) return;
-            onDiscard();
-          }}
-        >
-          Discard changes
+      {hint && <p className="mb-2 text-sm text-muted">{hint}</p>}
+      <div className="flex items-center gap-2">
+        <button type="submit" className="btn-primary flex-1 sm:flex-none" disabled={disabled}>
+          {label}
         </button>
-      )}
+        {onDiscard && (
+          <button
+            type="button"
+            className="btn-outline flex-1 sm:flex-none"
+            disabled={pending || !dirty}
+            onClick={() => {
+              if (discardConfirm && !confirm(discardConfirm)) return;
+              onDiscard();
+            }}
+          >
+            Discard changes
+          </button>
+        )}
+      </div>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProjectBySlug, getProjects } from "@/lib/queries/catalog";
 import { SmartImage } from "@/components/ui/smart-image";
+import { cloudinaryUrl } from "@/lib/images";
 import { breadcrumbJsonLd, JsonLd, pageMeta } from "@/lib/seo";
 import { whatsappLink } from "@/lib/site";
 import { WhatsAppIcon } from "@/components/ui/icons";
@@ -21,7 +22,7 @@ export async function generateMetadata({ params }: PageProps<"/interior-design/[
   const { slug } = await params;
   const p = await getProjectBySlug(slug);
   if (!p) return { title: "Project not found" };
-  return pageMeta({ title: `${p.title}: ${p.homeType} interior design`, description: p.summary.slice(0, 158), path: `/interior-design/${p.slug}`, image: p.coverUrl });
+  return pageMeta({ title: `${p.title}: ${p.homeType} interior design`, description: p.summary.slice(0, 158), path: `/interior-design/${p.slug}`, image: cloudinaryUrl(p.coverUrl, 1200, { fit: "cover" }) });
 }
 
 export default async function ProjectPage({ params }: PageProps<"/interior-design/[slug]">) {
@@ -44,7 +45,7 @@ export default async function ProjectPage({ params }: PageProps<"/interior-desig
       </nav>
       <h1 className="mt-5 max-w-4xl text-[40px] leading-[1.04] sm:text-[60px]">{p.title}</h1>
       <div className="relative mt-10 aspect-[16/9] overflow-hidden rounded-sm bg-cane/30">
-        <SmartImage src={p.coverUrl} alt={p.title} fill priority sizes="100vw" className="object-cover" />
+        <SmartImage src={cloudinaryUrl(p.coverUrl, 1920, { fit: "cover" })} alt={p.title} fill priority sizes="100vw" className="object-cover" />
       </div>
       <div className="mt-12 grid gap-12 lg:grid-cols-[1fr_1.6fr]">
         <dl className="h-fit divide-y divide-line border-y border-line">
@@ -66,7 +67,7 @@ export default async function ProjectPage({ params }: PageProps<"/interior-desig
         <ul className="mt-16 grid gap-4 sm:grid-cols-2">
           {p.gallery.slice(1).map((src, i) => (
             <li key={src + i} className="relative aspect-[4/3] overflow-hidden rounded-sm bg-cane/30">
-              <SmartImage src={src} alt={`${p.title}, view ${i + 2}`} fill sizes="(min-width:640px) 50vw, 100vw" className="object-cover" />
+              <SmartImage src={cloudinaryUrl(src, 1000, { fit: "cover" })} alt={`${p.title}, view ${i + 2}`} fill sizes="(min-width:640px) 50vw, 100vw" className="object-cover" />
             </li>
           ))}
         </ul>
