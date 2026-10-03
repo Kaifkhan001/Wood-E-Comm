@@ -32,7 +32,10 @@ export function ContactDock() {
           <a href={whatsappLink(msg)} target="_blank" rel="noopener noreferrer" className="btn flex-1 border border-[#1f7a4d]/40 text-[#1f7a4d]">
             <WhatsAppIcon className="h-5 w-5" /> WhatsApp
           </a>
-          <Link href="/get-a-quote" className="btn-primary flex-1">Get a free quote</Link>
+          <Link href="/get-a-quote" className="btn-primary flex-1">
+            <span className="hidden min-[380px]:inline">Get a free quote</span>
+            <span className="min-[380px]:hidden">Free quote</span>
+          </Link>
         </div>
       </div>
     </>

@@ -38,18 +38,18 @@ export default async function HomePage() {
       <section className="relative isolate min-h-[88svh] overflow-hidden lg:min-h-[92svh] lg:max-h-[900px]">
         <HeroSlideshow slides={heroSlides} />
         <div className="absolute inset-0 hidden bg-gradient-to-r from-ink/80 via-ink/45 to-transparent lg:block" aria-hidden />
-        <div className="absolute inset-x-0 bottom-0 h-[70%] bg-gradient-to-t from-ink/90 via-ink/55 to-transparent lg:hidden" aria-hidden />
+        <div className="absolute inset-x-0 bottom-0 h-[85%] bg-gradient-to-t from-ink/90 via-ink/70 to-transparent lg:hidden" aria-hidden />
 
-        <div className="container-x absolute inset-0 z-10 flex flex-col justify-end pb-14 lg:justify-center lg:pb-0">
+        <div className="container-x absolute inset-0 z-10 flex flex-col justify-end pb-24 lg:justify-center lg:pb-0">
           <div className="max-w-[640px]">
             <p className="text-sm font-medium text-paper sm:text-base">Furniture and interiors, Mumbai</p>
-            <h1 className="mt-3 text-[44px] leading-[1.04] text-paper sm:text-[56px] lg:text-[76px]">Timeless pieces, crafted in wood.</h1>
+            <h1 className="mt-3 text-[38px] leading-[1.04] text-paper min-[380px]:text-[44px] sm:text-[56px] lg:text-[76px]">Timeless pieces, crafted in wood.</h1>
             <p className="mt-5 max-w-md text-lg leading-relaxed text-paper/90">
               Solid-wood furniture from our own workshop, and complete interiors for new homes and renovations.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/furniture" className="btn-light">Shop furniture</Link>
-              <Link href="/get-a-quote" className="btn border border-paper text-paper hover:bg-paper/10">Plan your interiors</Link>
+            <div className="mt-8 grid grid-cols-1 gap-3 min-[400px]:max-w-sm min-[400px]:grid-cols-2 lg:flex lg:max-w-none lg:flex-wrap">
+              <Link href="/furniture" className="btn-light w-full lg:w-auto">Shop furniture</Link>
+              <Link href="/get-a-quote" className="btn w-full border border-paper text-paper hover:bg-paper/10 lg:w-auto">Plan your interiors</Link>
             </div>
           </div>
         </div>

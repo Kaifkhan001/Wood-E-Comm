@@ -55,7 +55,11 @@
 
 @utility container-x { margin-inline: auto; width: 100%; max-width: 1320px; padding-inline: 1.25rem; @media (width >= 40rem) { padding-inline: 2rem; } }
 @utility btn {
-  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-6 text-[15px] font-medium transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-60;
+  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-6 text-[15px] font-medium whitespace-nowrap transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-60;
+  @media (width < 380px) {
+    padding-inline: 1rem;
+    font-size: 14px;
+  }
 }
 @utility btn-primary { @apply btn bg-bottle text-paper hover:bg-bottle-600; }
 @utility btn-outline { @apply btn border border-ink/25 text-ink hover:border-ink hover:bg-ink/5; }

@@ -11,7 +11,7 @@ import { mkdir } from "node:fs/promises";
 import { chromium } from "playwright";
 
 const BASE = process.env.BASE_URL || "http://localhost:3002";
-const WIDTHS = [320, 360, 375, 390, 412, 768, 1024, 1280];
+const WIDTHS = [320, 344, 360, 375, 390, 412, 768, 1024, 1280]; // 344 = Galaxy Z Fold cover screen
 const SHOT_DIR = ".screenshots";
 
 const CUSTOMER = { email: "qa-customer@example.com", password: "TestPass1234" };
@@ -125,7 +125,39 @@ const EVALUATE_OVERFLOW = () => {
     deduped.push(o);
     if (deduped.length >= 6) break;
   }
-  return { scrollWidth, vw, bodyOverflow, offenders: deduped };
+
+  // Flags a button/link styled as a button whose label wraps to more than one line:
+  // clone it, force a single line to get its "should be" height, and compare to the
+  // real rendered height.
+  const wrappedButtons = [];
+  document.querySelectorAll('button, a[class*="btn"]').forEach((el) => {
+    const text = (el.textContent || "").trim();
+    if (!text) return;
+    const rect = el.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+    // A button deliberately laid out as a stacked column (e.g. the image uploader's
+    // "drag photos here" drop zone, with a heading line and a helper line) is multi-line
+    // by design, not a wrapped label -- skip it.
+    if (window.getComputedStyle(el).flexDirection === "column") return;
+    // Keep min-height/padding from the element's own classes (a button's min-h-11 is
+    // correctly 44px on a single line too) -- only force single-line, natural-width
+    // sizing so a wrap is the only thing that can grow it taller than this.
+    const clone = el.cloneNode(true);
+    clone.style.position = "absolute";
+    clone.style.visibility = "hidden";
+    clone.style.pointerEvents = "none";
+    clone.style.whiteSpace = "nowrap";
+    clone.style.width = "auto";
+    clone.style.maxWidth = "none";
+    document.body.appendChild(clone);
+    const singleLineHeight = clone.getBoundingClientRect().height;
+    document.body.removeChild(clone);
+    if (rect.height > singleLineHeight + 4) {
+      wrappedButtons.push({ selector: cssPath(el), text: text.slice(0, 60), height: Math.round(rect.height), singleLineHeight: Math.round(singleLineHeight) });
+    }
+  });
+
+  return { scrollWidth, vw, bodyOverflow, offenders: deduped, wrappedButtons };
 };
 
 function withTimeout(promise, ms, label) {
@@ -287,12 +319,17 @@ async function main() {
       // printed as a note (not a failure) -- in practice these are almost always either
       // a correctly-contained intentional scroller this heuristic didn't recognise, or a
       // one-off render-timing artifact from checking many pages back to back; they are
-      // worth a human glance but shouldn't fail the run on their own.
-      const status = r.bodyOverflow ? "FAIL" : r.offenders.length ? "NOTE" : "PASS";
+      // worth a human glance but shouldn't fail the run on their own. A wrapped button
+      // label is always a real, fixable bug, so it fails the run like bodyOverflow does.
+      const hasWrapped = r.wrappedButtons && r.wrappedButtons.length > 0;
+      const status = r.bodyOverflow || hasWrapped ? "FAIL" : r.offenders.length ? "NOTE" : "PASS";
       if (status === "FAIL") anyFail = true;
       console.log(`${status}  ${page.name.padEnd(28)} w=${r.width}  scrollWidth=${r.scrollWidth} (viewport ${r.vw})`);
       for (const o of r.offenders) {
         console.log(`        +${o.overflowAmt}px  ${o.selector}  "${o.text}"`);
+      }
+      for (const b of r.wrappedButtons ?? []) {
+        console.log(`        wrapped button  ${b.selector}  "${b.text}"  height=${b.height} (single-line ${b.singleLineHeight})`);
       }
     }
   }

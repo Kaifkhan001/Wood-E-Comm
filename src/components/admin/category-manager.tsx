@@ -100,7 +100,7 @@ export function CategoryManager({ items }: { items: Cat[] }) {
           <label htmlFor="c-pos" className="label-text">Position</label>
           <input id="c-pos" inputMode="numeric" className="field max-w-[120px] bg-white" value={f.position} onChange={(e) => setF({ ...f, position: e.target.value.replace(/\D/g, "") })} />
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <SaveBar
             dirty={dirty}
             pending={pending}
@@ -110,7 +110,7 @@ export function CategoryManager({ items }: { items: Cat[] }) {
             discardConfirm="Discard your changes to this category?"
             onDiscard={editing ? () => { setF(baseline); setErrors({}); } : undefined}
           />
-          {editing && <button type="button" className="btn-outline" onClick={reset}>Cancel</button>}
+          {editing && <button type="button" className="btn-outline flex-1 sm:flex-none" onClick={reset}>Cancel</button>}
         </div>
       </form>
     </div>
