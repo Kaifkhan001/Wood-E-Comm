@@ -2,7 +2,6 @@
 import { useEffect, useRef, useState } from "react";
 import { SmartImage } from "@/components/ui/smart-image";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
-import { cn } from "@/lib/utils";
 
 type Slide = { src: string; alt: string };
 
@@ -64,21 +63,6 @@ export function HeroSlideshow({ slides }: { slides: Slide[] }) {
           </div>
         );
       })}
-      {multi && (
-        // Lifted clear of the fixed WhatsApp dock (a full-width bar on mobile, a round button bottom-6 right-6 on desktop) that floats over every page.
-        <div className="absolute bottom-24 right-5 z-10 flex gap-2 lg:right-8">
-          {slides.map((_, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => setActive(i)}
-              aria-label={`Show slide ${i + 1} of ${slides.length}`}
-              aria-current={i === active}
-              className={cn("h-2 rounded-full transition-all", i === active ? "w-6 bg-paper" : "w-2 bg-paper/50 hover:bg-paper/80")}
-            />
-          ))}
-        </div>
-      )}
     </div>
   );
 }
