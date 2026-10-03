@@ -2,7 +2,24 @@
 
 Furniture store and interior-design studio website. Next.js 16 (App Router), Postgres (Neon) with Drizzle, Better Auth, Cloudinary, Tailwind CSS v4.
 
-Business details (contact, socials, WhatsApp number) live in `src/lib/site.ts`. The logo is a registered trademark (`public/brand/logo-master.png`); every place it appears (`src/app/icon.png`, `apple-icon.png`, `opengraph-image.png`, `public/brand/logo.png`, `logo-on-white.png`, `instagram-qr.svg`) is generated from it by `node scripts/brand-assets.mjs` — never edit those files by hand, edit the master and re-run the script. That script uses `sharp` (image processing) and `qrcode` (QR generation), both devDependencies since they only run at build-asset time, not in the app itself. The swipeable product galleries use `embla-carousel-react` (~6KB gzip, a runtime dependency).
+Business details (contact, socials, WhatsApp number) live in `src/lib/site.ts`. The logo is a registered trademark (`public/brand/logo-master.png`); every place it appears (`src/app/icon.png`, `apple-icon.png`, `opengraph-image.png`, `public/brand/logo.png`, `logo-on-white.png`, `instagram-qr.svg`) is generated from it by `node scripts/brand-assets.mjs` — never edit those files by hand, edit the master and re-run the script. That script uses `sharp` (image processing) and `qrcode` (QR generation), both devDependencies since they only run at build-asset time, not in the app itself. The swipeable product galleries use `embla-carousel-react` (~6KB gzip, a runtime dependency). The admin image uploader (drag-and-drop, progress, reordering) uses `@dnd-kit/core`/`@dnd-kit/sortable`/`@dnd-kit/utilities` and `react-easy-crop` — all runtime dependencies, but only loaded by admin pages, never the public storefront.
+
+### Cloudinary images showing as a placeholder
+
+If an uploaded product photo appears in your Cloudinary dashboard but shows a placeholder on the site: `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` is almost certainly missing or wrong. It's inlined into the app at **build time** (not read at runtime), so if it was blank or misspelled the last time the site was built, every image saved before the fix below falls back to the placeholder even though the upload itself worked. Uploads now also save Cloudinary's `secure_url` directly, so newly uploaded images no longer depend on that variable at all — but any row saved before this fix (publicId only, no url) still does, until you run the backfill:
+
+```bash
+node scripts/backfill-image-urls.mjs          # dry run, prints what it would change
+node scripts/backfill-image-urls.mjs --apply  # writes url for publicId-only rows
+```
+
+This reads `DATABASE_URL` and `CLOUDINARY_CLOUD_NAME` from `.env.local`. To run the equivalent directly in the Neon SQL editor instead (e.g. against production from a machine that can't reach the database), use:
+
+```sql
+UPDATE product_images
+SET url = 'https://res.cloudinary.com/<your-cloud-name>/image/upload/' || public_id
+WHERE public_id IS NOT NULL AND (url IS NULL OR url = '');
+```
 
 ## What's in it
 
@@ -101,10 +118,13 @@ Use `wood_and_wonders_app` in Vercel's `DATABASE_URL`. Keep the owner role only 
 ## Before launch: replace placeholder content
 
 - Stock photos are Unsplash URLs (hotlinked, fine for demo). Upload your own photos through the admin panel. Any image that fails to load shows a neutral placeholder instead of breaking the layout.
-- Home page stats ("140+ homes", "Jodhpur workshop", "1 year warranty"), delivery promises and project write-ups are placeholder copy. Replace with real facts.
+- Delivery promises and project write-ups are placeholder copy. Replace with real facts.
 - Privacy policy and terms are templates. Have a lawyer review them.
-- Add `public/og.png` (1200×630) for social sharing previews.
-- Project (portfolio) pages are seeded; manage them at `/admin/projects` (add, edit, publish/unpublish, reorder, delete).
+- Project (portfolio) pages are seeded; manage them at `/admin/projects` (add, edit, publish/unpublish, reorder, delete). The home page hero automatically shows your top 3 published projects (by position, then newest) — reorder them there to change what visitors see first.
+
+## Importing from the old website
+
+Not done yet. `scripts/import-old-site/` doesn't exist — the owner needs to supply the actual domain of the old site to migrate from before this can be built (a placeholder URL was supplied in its place, pointing to an Amazon brand storefront page rather than a scrapable site with its own sitemap and product pages). Once the real domain is confirmed, the importer should follow a three-phase flow: Phase 1 inventories pages and images read-only and writes `import/report.md` for review; Phase 2 uploads approved images to Cloudinary; Phase 3 creates hidden draft products/projects in the database (or an `import/import.sql` file if the database can't be reached directly). Re-run with `--phase=inventory|upload|db --dry-run`.
 
 ## Scripts
 
@@ -118,6 +138,8 @@ Use `wood_and_wonders_app` in Vercel's `DATABASE_URL`. Keep the owner role only 
 | `npm run make-admin -- email` | Promote an existing account to admin |
 | `npm run secrets:scan` | Scan all git history for leaked secrets |
 | `node scripts/brand-assets.mjs` | Regenerate every derived logo/QR asset from `public/brand/logo-master.png` (re-run after replacing the master) |
+| `npm run backfill-images` | Fill in `url` for product images saved before the Cloudinary fix (dry run; add `-- --apply` to write) |
+| `node scripts/check-overflow.mjs` | Playwright check for horizontal overflow across every page at 320–1280px (dev-only, see below) |
 
 ## Project map
 
