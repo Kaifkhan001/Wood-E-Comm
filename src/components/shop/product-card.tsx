@@ -5,7 +5,7 @@ import type { ProductCardData } from "@/lib/queries/catalog";
 import { ProductImageCarousel } from "@/components/shop/product-image-carousel";
 
 export function ProductCard({ p, priority }: { p: ProductCardData; priority?: boolean }) {
-  const images = p.images.map((img) => ({ src: imageSrc(img, 800), alt: img.alt || "" }));
+  const images = p.images.map((img) => ({ src: imageSrc(img, 800, { fit: "cover", ar: "4:5" }), alt: img.alt || "" }));
   const off = discountPercent(p.price, p.mrp);
   return (
     <article className="group relative">

@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { categories, productImages, products } from "@/db/schema";
 import { Empty, PageHeader, Table } from "@/components/admin/ui";
 import { ProductRowActions } from "@/components/admin/product-row-actions";
-import { SmartImage } from "@/components/ui/smart-image";
+import { AdminImageThumb } from "@/components/admin/image-thumb";
 import { imageSrc } from "@/lib/images";
 import { formatINR } from "@/lib/utils";
 
@@ -51,7 +51,7 @@ export default async function AdminProducts({ searchParams }: PageProps<"/admin/
                 <td>
                   <div className="flex items-center gap-3">
                     <div className="relative h-12 w-10 shrink-0 overflow-hidden rounded-sm bg-cane/30">
-                      {p.images[0] && <SmartImage src={imageSrc(p.images[0], 120)} alt="" fill sizes="40px" className="object-cover" />}
+                      {p.images[0] && <AdminImageThumb src={imageSrc(p.images[0], 120)} sizes="40px" className="object-cover" />}
                     </div>
                     <div><Link href={`/admin/products/${p.id}`} className="font-medium hover:underline">{p.name}</Link>{p.isFeatured && <span className="ml-2 text-xs text-brass">Featured</span>}<p className="text-muted">{p.material}</p></div>
                   </div>

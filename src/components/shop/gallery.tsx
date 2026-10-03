@@ -5,12 +5,14 @@ import { createPortal } from "react-dom";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight, X, ZoomIn } from "lucide-react";
 import { SmartImage } from "@/components/ui/smart-image";
+import { imageSrc } from "@/lib/images";
 import { cn } from "@/lib/utils";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 
-type Img = { src: string; alt: string };
+type SourceImg = { publicId?: string | null; url?: string | null; alt: string };
+type Img = { thumb: string; main: string; full: string; alt: string };
 
-export function Gallery({ images, name }: { images: Img[]; name: string }) {
+export function Gallery({ images: source, name }: { images: SourceImg[]; name: string }) {
   const reducedMotion = usePrefersReducedMotion();
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [startIndex, setStartIndex] = useState(0);
@@ -20,9 +22,18 @@ export function Gallery({ images, name }: { images: Img[]; name: string }) {
     setLightboxOpen(true);
   }, []);
 
-  if (images.length === 0) {
+  if (source.length === 0) {
     return <div className="relative aspect-[4/5] flex-1 overflow-hidden rounded-sm bg-cane/30" />;
   }
+
+  // The gallery never crops: it shows the whole product (c_pad), while
+  // thumbnails and the fullscreen viewer get their own context-appropriate crop.
+  const images: Img[] = source.map((img) => ({
+    thumb: imageSrc(img, 160, { fit: "thumb" }),
+    main: imageSrc(img, 1200, { fit: "contain", ar: "4:5" }),
+    full: imageSrc(img, 2400, { fit: "limit" }),
+    alt: img.alt,
+  }));
 
   return (
     <div className="flex flex-col-reverse gap-3 md:flex-row">
@@ -89,7 +100,7 @@ function MainViewer({
       {multi && (
         <ul className="flex gap-2 overflow-x-auto md:flex-col md:overflow-visible" aria-label="Product images">
           {images.map((img, idx) => (
-            <li key={img.src + idx} className="shrink-0">
+            <li key={idx} className="shrink-0">
               <button
                 ref={(el) => { thumbRefs.current[idx] = el; }}
                 type="button"
@@ -101,7 +112,7 @@ function MainViewer({
                   idx === selected ? "border-bottle" : "border-transparent opacity-70 hover:opacity-100",
                 )}
               >
-                <SmartImage src={img.src} alt="" fill sizes="80px" className="object-cover" />
+                <SmartImage src={img.thumb} alt="" fill sizes="80px" className="object-cover" />
               </button>
             </li>
           ))}
@@ -120,7 +131,7 @@ function MainViewer({
           <div className="flex h-full">
             {images.map((img, idx) => (
               <div
-                key={img.src + idx}
+                key={idx}
                 className="relative h-full w-full shrink-0 grow-0 basis-full"
                 role="group"
                 aria-roledescription="slide"
@@ -133,13 +144,13 @@ function MainViewer({
                   aria-label={`Expand image ${idx + 1} of ${images.length}`}
                 >
                   <SmartImage
-                    src={img.src}
+                    src={img.main}
                     alt={img.alt || name}
                     fill
                     priority={idx === 0}
                     loading={idx === 0 ? undefined : Math.abs(idx - selected) <= 1 ? "eager" : "lazy"}
                     sizes="(min-width: 1024px) 50vw, 100vw"
-                    className="object-cover"
+                    className="object-contain"
                   />
                 </button>
               </div>
@@ -274,7 +285,7 @@ function Lightbox({
         <div className="flex h-full">
           {images.map((img, idx) => (
             <div
-              key={img.src + idx}
+              key={idx}
               className="relative h-full w-full shrink-0 grow-0 basis-full"
               role="group"
               aria-roledescription="slide"
@@ -371,7 +382,7 @@ function ZoomableImage({ img, name, active, onZoomChange }: { img: Img; name: st
           transformOrigin: origin,
         }}
       >
-        <SmartImage src={img.src} alt={img.alt || name} fill sizes="100vw" className="object-contain" draggable={false} />
+        <SmartImage src={img.full} alt={img.alt || name} fill sizes="100vw" className="object-contain" draggable={false} />
       </div>
     </div>
   );

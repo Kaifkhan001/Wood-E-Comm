@@ -44,7 +44,7 @@ export default async function ProductPage({ params }: PageProps<"/product/[slug]
   if (!p) notFound();
   const related = await getRelatedProducts(p.categoryId, p.id);
   const off = discountPercent(p.price, p.mrp);
-  const images = p.images.map((img) => ({ src: imageSrc(img, 1400), alt: img.alt }));
+  const jsonLdImages = p.images.map((img) => imageSrc(img, 1200, { fit: "cover", ar: "4:5" }));
   const url = `${site.url}/product/${p.slug}`;
 
   return (
@@ -55,7 +55,7 @@ export default async function ProductPage({ params }: PageProps<"/product/[slug]
           "@type": "Product",
           name: p.name,
           description: p.shortDescription,
-          image: images.map((i) => i.src),
+          image: jsonLdImages,
           sku: p.id,
           material: p.material,
           color: p.color,
@@ -91,7 +91,7 @@ export default async function ProductPage({ params }: PageProps<"/product/[slug]
       </nav>
 
       <div className="mt-6 grid gap-10 lg:grid-cols-[1.15fr_1fr] lg:gap-16">
-        <Gallery images={images} name={p.name} />
+        <Gallery images={p.images} name={p.name} />
 
         <div className="lg:pt-4">
           <p className="text-sm text-muted">{p.material}</p>

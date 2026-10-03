@@ -12,6 +12,7 @@
     "db:push": "drizzle-kit push",
     "db:seed": "tsx src/db/seed.ts",
     "make-admin": "tsx src/db/make-admin.ts",
+    "backfill-images": "node scripts/backfill-image-urls.mjs",
     "secrets:scan": "gitleaks detect --source . --log-opts=--all -v"
   },
   "dependencies": {

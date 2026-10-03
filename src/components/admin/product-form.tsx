@@ -30,6 +30,7 @@ export function ProductForm({ id, initial, categories }: { id: string | null; in
   const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState(0);
   const [urlInput, setUrlInput] = useState("");
+  const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
   const fileRef = useRef<HTMLInputElement>(null);
   const dirty = JSON.stringify(v) !== JSON.stringify(baseline);
   useUnsavedChangesGuard(dirty);
@@ -58,7 +59,7 @@ export function ProductForm({ id, initial, categories }: { id: string | null; in
         const up = await fetch(`https://api.cloudinary.com/v1_1/${sig.cloud_name}/image/upload`, { method: "POST", body });
         const data = await up.json();
         if (!up.ok) throw new Error(data?.error?.message || "Upload failed");
-        setV((s) => ({ ...s, images: [...s.images, { publicId: data.public_id, alt: s.name }] }));
+        setV((s) => ({ ...s, images: [...s.images, { publicId: data.public_id, url: data.secure_url, alt: s.name }] }));
       } catch (e) {
         toast.error((e as Error).message);
       } finally {
@@ -145,7 +146,17 @@ export function ProductForm({ id, initial, categories }: { id: string | null; in
             {v.images.map((img, i) => (
               <li key={(img.publicId ?? img.url ?? "") + i} className="rounded-md border border-line p-2">
                 <div className="relative aspect-square overflow-hidden rounded-sm bg-cane/30">
-                  <SmartImage src={imageSrc(img, 300)} alt="" fill sizes="150px" className="object-cover" />
+                  <SmartImage
+                    src={imageSrc(img, 300)}
+                    alt=""
+                    fill
+                    sizes="150px"
+                    className="object-cover"
+                    onError={() => setFailedImages((s) => new Set(s).add(i))}
+                  />
+                  {failedImages.has(i) && (
+                    <span className="absolute left-1 top-1 rounded-full bg-danger px-1.5 py-0.5 text-[10px] font-medium text-white">Image failed to load</span>
+                  )}
                 </div>
                 <input aria-label={`Alt text for image ${i + 1}`} className="mt-2 w-full rounded border border-line px-2 py-1 text-xs" placeholder="Describe the image" value={img.alt} maxLength={160}
                   onChange={(e) => setV((s) => ({ ...s, images: s.images.map((x, j) => (j === i ? { ...x, alt: e.target.value } : x)) }))} />

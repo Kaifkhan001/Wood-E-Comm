@@ -3,7 +3,7 @@ import { getCategories, getFeaturedProducts, getProjects } from "@/lib/queries/c
 import { ProductGrid } from "@/components/shop/product-card";
 import { ProjectsRail } from "@/components/home/projects-rail";
 import { SmartImage } from "@/components/ui/smart-image";
-import { unsplash } from "@/lib/images";
+import { cloudinaryUrl, unsplash } from "@/lib/images";
 import { site, whatsappLink } from "@/lib/site";
 import { InstagramIcon, WhatsAppIcon } from "@/components/ui/icons";
 import { pageMeta } from "@/lib/seo";
@@ -66,7 +66,7 @@ export default async function HomePage() {
           {cats.map((c) => (
             <li key={c.id}>
               <Link href={`/furniture/${c.slug}`} className="group relative block aspect-[4/3] overflow-hidden rounded-sm bg-cane/30">
-                {c.imageUrl && <SmartImage src={c.imageUrl} alt="" fill sizes="(min-width:768px) 33vw, 50vw" className="object-cover transition-transform duration-700 group-hover:scale-[1.04]" />}
+                {c.imageUrl && <SmartImage src={cloudinaryUrl(c.imageUrl, 600, { fit: "cover", ar: "4:3" })} alt="" fill sizes="(min-width:768px) 33vw, 50vw" className="object-cover transition-transform duration-700 group-hover:scale-[1.04]" />}
                 <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/70 to-transparent p-4 pt-12 font-display text-2xl text-paper sm:text-3xl">{c.name}</span>
               </Link>
             </li>
