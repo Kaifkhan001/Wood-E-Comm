@@ -3,6 +3,7 @@ import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { deleteCategory, saveCategory } from "@/app/actions/admin";
 import { slugify } from "@/lib/utils";
+import { SlugField } from "./slug-field";
 import { SaveBar } from "./save-bar";
 import { useUnsavedChangesGuard } from "@/lib/use-unsaved-changes";
 
@@ -83,8 +84,12 @@ export function CategoryManager({ items }: { items: Cat[] }) {
           {errors.name && <p className="field-error">{errors.name}</p>}
         </div>
         <div>
-          <label htmlFor="c-slug" className="label-text">URL slug</label>
-          <input id="c-slug" className="field bg-white" value={f.slug} maxLength={80} onChange={(e) => setF({ ...f, slug: slugify(e.target.value) })} />
+          <SlugField
+            value={f.slug}
+            onChange={(s) => setF({ ...f, slug: s })}
+            prefix="/furniture/"
+            hint={editing ? "URL stays the same. Edit it only if needed." : undefined}
+          />
           {errors.slug && <p className="field-error">{errors.slug}</p>}
         </div>
         <div>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { saveProject } from "@/app/actions/admin";
 import { ImageUploader, StockUrlField, type UploaderImg } from "@/components/admin/image-uploader";
+import { SlugField } from "@/components/admin/slug-field";
 import { PROJECTS_UPLOAD_FOLDER } from "@/lib/cloudinary-folders";
 import { slugify } from "@/lib/utils";
 import { SaveBar } from "./save-bar";
@@ -56,10 +57,12 @@ export function ProjectForm({ id, initial }: { id: string | null; initial: Proje
       toast.error(res.error);
       return;
     }
-    toast.success("Project saved");
+    toast.success(res.message ?? "Project saved");
+    const finalV = res.data?.slug ? { ...v, slug: res.data.slug } : v;
     if (!id && res.data) router.replace(`/admin/projects/${res.data.id}`);
     else {
-      setBaseline(v);
+      setV(finalV);
+      setBaseline(finalV);
       setSaved(true);
       router.refresh();
     }
@@ -78,12 +81,12 @@ export function ProjectForm({ id, initial }: { id: string | null; initial: Proje
             <F k="title" />
           </div>
           <div>
-            <label htmlFor="pr-slug" className="label-text">URL slug</label>
-            <div className="flex items-center rounded-md border border-line bg-white focus-within:border-bottle">
-              <span className="pl-3.5 text-sm text-muted">/interior-design/</span>
-              <input id="pr-slug" className="w-full bg-transparent py-2.5 pr-3.5 text-[15px] outline-none" value={v.slug} maxLength={80}
-                onChange={(e) => { setSlugTouched(true); set("slug", slugify(e.target.value)); }} />
-            </div>
+            <SlugField
+              value={v.slug}
+              onChange={(s) => { setSlugTouched(true); set("slug", s); }}
+              prefix="/interior-design/"
+              hint={id ? "URL stays the same. Edit it only if needed." : undefined}
+            />
             <F k="slug" />
           </div>
           <div>

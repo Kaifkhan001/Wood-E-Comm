@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
+import { and, eq } from "drizzle-orm";
+import { db } from "@/db";
+import { projectSlugRedirects, projects } from "@/db/schema";
 import { getProjectBySlug, getProjects } from "@/lib/queries/catalog";
 import { SmartImage } from "@/components/ui/smart-image";
 import { cloudinaryUrl } from "@/lib/images";
@@ -9,6 +12,13 @@ import { whatsappLink } from "@/lib/site";
 import { WhatsAppIcon } from "@/components/ui/icons";
 
 export const revalidate = 300;
+
+async function resolveProjectRedirect(slug: string): Promise<string | null> {
+  const [row] = await db.select({ projectId: projectSlugRedirects.projectId }).from(projectSlugRedirects).where(eq(projectSlugRedirects.oldSlug, slug)).limit(1);
+  if (!row) return null;
+  const [p] = await db.select({ slug: projects.slug }).from(projects).where(and(eq(projects.id, row.projectId), eq(projects.isPublished, true))).limit(1);
+  return p?.slug ?? null;
+}
 
 export async function generateStaticParams() {
   try {
@@ -21,14 +31,22 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: PageProps<"/interior-design/[slug]">): Promise<Metadata> {
   const { slug } = await params;
   const p = await getProjectBySlug(slug);
-  if (!p) return { title: "Project not found" };
+  if (!p) {
+    const redirectSlug = await resolveProjectRedirect(slug);
+    if (redirectSlug) return pageMeta({ title: "Project moved", description: "", path: `/interior-design/${redirectSlug}`, noindex: true });
+    return { title: "Project not found" };
+  }
   return pageMeta({ title: `${p.title}: ${p.homeType} interior design`, description: p.summary.slice(0, 158), path: `/interior-design/${p.slug}`, image: cloudinaryUrl(p.coverUrl, 1200, { fit: "cover" }) });
 }
 
 export default async function ProjectPage({ params }: PageProps<"/interior-design/[slug]">) {
   const { slug } = await params;
   const p = await getProjectBySlug(slug);
-  if (!p) notFound();
+  if (!p) {
+    const redirectSlug = await resolveProjectRedirect(slug);
+    if (redirectSlug) permanentRedirect(`/interior-design/${redirectSlug}`);
+    notFound();
+  }
   const facts = [
     ["Home", p.homeType],
     ["Location", p.location],

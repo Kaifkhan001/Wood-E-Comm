@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { Truck, Hammer, ShieldCheck } from "lucide-react";
 import { db } from "@/db";
-import { products } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { productSlugRedirects, products } from "@/db/schema";
+import { and, eq } from "drizzle-orm";
 import { getProductBySlug, getRelatedProducts } from "@/lib/queries/catalog";
 import { imageSrc } from "@/lib/images";
 import { breadcrumbJsonLd, JsonLd, pageMeta } from "@/lib/seo";
@@ -16,6 +16,16 @@ import { ProductGrid } from "@/components/shop/product-card";
 import { WhatsAppIcon } from "@/components/ui/icons";
 
 export const revalidate = 300;
+
+/** Looks up a slug that moved (the product was renamed), so the old URL keeps
+ * working via a real 308 instead of a 404. Resolves through the productId, so
+ * it always lands on the CURRENT slug even after several renames. */
+async function resolveProductRedirect(slug: string): Promise<string | null> {
+  const [row] = await db.select({ productId: productSlugRedirects.productId }).from(productSlugRedirects).where(eq(productSlugRedirects.oldSlug, slug)).limit(1);
+  if (!row) return null;
+  const [p] = await db.select({ slug: products.slug }).from(products).where(and(eq(products.id, row.productId), eq(products.isActive, true))).limit(1);
+  return p?.slug ?? null;
+}
 
 export async function generateStaticParams() {
   try {
@@ -29,7 +39,11 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: PageProps<"/product/[slug]">): Promise<Metadata> {
   const { slug } = await params;
   const p = await getProductBySlug(slug);
-  if (!p) return { title: "Product not found" };
+  if (!p) {
+    const redirectSlug = await resolveProductRedirect(slug);
+    if (redirectSlug) return pageMeta({ title: "Product moved", description: "", path: `/product/${redirectSlug}`, noindex: true });
+    return { title: "Product not found" };
+  }
   return pageMeta({
     title: `${p.name}, ${p.material}`,
     description: `${p.shortDescription} ${formatINR(p.price)}. Free delivery and installation in Mumbai.`.slice(0, 160),
@@ -41,7 +55,11 @@ export async function generateMetadata({ params }: PageProps<"/product/[slug]">)
 export default async function ProductPage({ params }: PageProps<"/product/[slug]">) {
   const { slug } = await params;
   const p = await getProductBySlug(slug);
-  if (!p) notFound();
+  if (!p) {
+    const redirectSlug = await resolveProductRedirect(slug);
+    if (redirectSlug) permanentRedirect(`/product/${redirectSlug}`);
+    notFound();
+  }
   const related = await getRelatedProducts(p.categoryId, p.id);
   const off = discountPercent(p.price, p.mrp);
   const jsonLdImages = p.images.map((img) => imageSrc(img, 1200, { fit: "cover", ar: "4:5" }));

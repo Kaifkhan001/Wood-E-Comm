@@ -1,12 +1,52 @@
 "use server";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, ne, sql } from "drizzle-orm";
+import type { PgTransaction } from "drizzle-orm/pg-core";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/db";
-import { categories, contactMessages, orderItems, orders, productImages, products, projects, quoteRequests, orderStatusEnum, quoteStatusEnum } from "@/db/schema";
+import {
+  categories,
+  contactMessages,
+  orderItems,
+  orders,
+  productImages,
+  productSlugRedirects,
+  products,
+  projectSlugRedirects,
+  projects,
+  quoteRequests,
+  orderStatusEnum,
+  quoteStatusEnum,
+} from "@/db/schema";
 import { assertAdmin } from "@/lib/session";
 import { destroyAsset } from "@/lib/cloudinary";
 import { categorySchema, productSchema, projectSchema, zodErrors, type ActionResult } from "@/lib/validators";
+
+type Tx = PgTransaction<any, any, any>;
+
+/** Appends -2, -3… until the slug is free (ignoring the row being updated). Also
+ * frees the slug from any stale redirect, since a product/project that directly
+ * owns a slug always wins over a redirect to somewhere else. */
+async function uniqueSlug(
+  tx: Tx,
+  table: typeof products | typeof projects,
+  redirects: typeof productSlugRedirects | typeof projectSlugRedirects,
+  base: string,
+  excludeId: string | null,
+): Promise<string> {
+  let candidate = base;
+  for (let n = 2; ; n++) {
+    const conflict = await tx
+      .select({ id: table.id })
+      .from(table)
+      .where(excludeId ? and(eq(table.slug, candidate), ne(table.id, excludeId)) : eq(table.slug, candidate))
+      .limit(1);
+    if (!conflict.length) break;
+    candidate = `${base}-${n}`;
+  }
+  await tx.delete(redirects).where(eq(redirects.oldSlug, candidate));
+  return candidate;
+}
 
 const GENERIC = "Couldn't save. Please try again.";
 const uuid = z.uuid();
@@ -33,7 +73,7 @@ function revalidateCatalog(slug?: string) {
 }
 
 /* ── Products ── */
-export async function saveProduct(id: string | null, input: unknown): Promise<ActionResult<{ id: string }>> {
+export async function saveProduct(id: string | null, input: unknown): Promise<ActionResult<{ id: string; slug: string }>> {
   const denied = await gate();
   if (denied) return denied;
   if (id && !uuid.safeParse(id).success) return { ok: false, error: "Invalid product." };
@@ -45,30 +85,47 @@ export async function saveProduct(id: string | null, input: unknown): Promise<Ac
   if (images.some((i) => !i.publicId && !i.url)) return { ok: false, error: "One of the images is missing." };
 
   try {
-    const { pid: productId, removed } = await db.transaction(async (tx) => {
+    const { pid: productId, finalSlug, removed } = await db.transaction(async (tx) => {
       let pid = id;
       let removedPublicIds: string[] = [];
+      let oldSlug: string | undefined;
+
+      if (pid) {
+        const [existing] = await tx.select({ slug: products.slug }).from(products).where(eq(products.id, pid)).limit(1);
+        if (!existing) throw new Error("NOT_FOUND");
+        oldSlug = existing.slug;
+      }
+      const finalSlug = await uniqueSlug(tx, products, productSlugRedirects, data.slug, pid);
+
       if (pid) {
         const old = await tx.select({ publicId: productImages.publicId }).from(productImages).where(eq(productImages.productId, pid));
         const keep = new Set(images.map((i) => i.publicId).filter(Boolean));
         removedPublicIds = old.map((o) => o.publicId).filter((p): p is string => Boolean(p) && !keep.has(p));
-        const upd = await tx.update(products).set({ ...data, mrp: data.mrp || null, updatedAt: new Date() }).where(eq(products.id, pid)).returning({ id: products.id });
-        if (!upd.length) throw new Error("NOT_FOUND");
+        await tx.update(products).set({ ...data, slug: finalSlug, mrp: data.mrp || null, updatedAt: new Date() }).where(eq(products.id, pid));
         await tx.delete(productImages).where(eq(productImages.productId, pid));
+        // The old URL keeps working: redirect it at this product. Points at the
+        // productId (not the slug), so later renames never need chain updates.
+        if (oldSlug && oldSlug !== finalSlug) {
+          await tx
+            .insert(productSlugRedirects)
+            .values({ oldSlug, productId: pid })
+            .onConflictDoUpdate({ target: productSlugRedirects.oldSlug, set: { productId: pid } });
+        }
       } else {
-        const [row] = await tx.insert(products).values({ ...data, mrp: data.mrp || null }).returning({ id: products.id });
+        const [row] = await tx.insert(products).values({ ...data, slug: finalSlug, mrp: data.mrp || null }).returning({ id: products.id });
         pid = row.id;
       }
       if (images.length) {
         await tx.insert(productImages).values(images.map((img, i) => ({ productId: pid!, publicId: img.publicId ?? null, url: img.url ?? null, alt: img.alt || data.name, position: i })));
       }
-      return { pid: pid!, removed: removedPublicIds };
+      return { pid: pid!, finalSlug, removed: removedPublicIds };
     });
     // Clean up Cloudinary assets only after the transaction committed.
     removed.forEach((p) => void destroyAsset(p));
-    revalidateCatalog(data.slug);
+    revalidateCatalog(finalSlug);
     revalidatePath("/admin/products");
-    return { ok: true, data: { id: productId }, message: "Product saved" };
+    const message = finalSlug === data.slug ? "Product saved" : `Product saved. URL: /product/${finalSlug}`;
+    return { ok: true, data: { id: productId, slug: finalSlug }, message };
   } catch (e) {
     if (isUniqueViolation(e)) return { ok: false, error: "That URL slug is already used by another product.", fieldErrors: { slug: "Already in use" } };
     if ((e as Error).message === "NOT_FOUND") return { ok: false, error: "This product no longer exists." };
@@ -121,11 +178,25 @@ export async function saveCategory(id: string | null, input: unknown): Promise<A
   if (!parsed.success) return { ok: false, error: "Please fix the highlighted fields.", fieldErrors: zodErrors(parsed.error) };
   const data = { ...parsed.data, imageUrl: parsed.data.imageUrl || null };
   try {
-    if (id) await db.update(categories).set(data).where(eq(categories.id, id));
-    else await db.insert(categories).values(data);
+    const finalSlug = await db.transaction(async (tx) => {
+      let candidate = data.slug;
+      for (let n = 2; ; n++) {
+        const conflict = await tx
+          .select({ id: categories.id })
+          .from(categories)
+          .where(id ? and(eq(categories.slug, candidate), ne(categories.id, id)) : eq(categories.slug, candidate))
+          .limit(1);
+        if (!conflict.length) break;
+        candidate = `${data.slug}-${n}`;
+      }
+      if (id) await tx.update(categories).set({ ...data, slug: candidate }).where(eq(categories.id, id));
+      else await tx.insert(categories).values({ ...data, slug: candidate });
+      return candidate;
+    });
     revalidateCatalog();
     revalidatePath("/admin/categories");
-    return { ok: true, message: "Category saved" };
+    const message = finalSlug === data.slug ? "Category saved" : `Category saved. URL: /furniture/${finalSlug}`;
+    return { ok: true, message };
   } catch (e) {
     if (isUniqueViolation(e)) return { ok: false, error: "That slug is already used.", fieldErrors: { slug: "Already in use" } };
     console.error("saveCategory", e);
@@ -159,7 +230,7 @@ function cloudinaryPublicIdFromUrl(url: string): string | null {
   return m ? m[1] : null;
 }
 
-export async function saveProject(id: string | null, input: unknown): Promise<ActionResult<{ id: string }>> {
+export async function saveProject(id: string | null, input: unknown): Promise<ActionResult<{ id: string; slug: string }>> {
   const denied = await gate();
   if (denied) return denied;
   if (id && !uuid.safeParse(id).success) return { ok: false, error: "Invalid project." };
@@ -167,27 +238,45 @@ export async function saveProject(id: string | null, input: unknown): Promise<Ac
   const parsed = projectSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Please fix the highlighted fields.", fieldErrors: zodErrors(parsed.error) };
   const { images, ...data } = parsed.data;
-  const values = { ...data, areaSqft: data.areaSqft || null, durationWeeks: data.durationWeeks || null, coverUrl: images[0], gallery: images };
 
   try {
-    let removed: string[] = [];
-    let pid = id;
-    if (pid) {
-      const [old] = await db.select({ gallery: projects.gallery }).from(projects).where(eq(projects.id, pid)).limit(1);
-      if (!old) return { ok: false, error: "This project no longer exists." };
-      const keep = new Set(images);
-      removed = old.gallery.filter((u) => !keep.has(u));
-      await db.update(projects).set(values).where(eq(projects.id, pid));
-    } else {
-      const [row] = await db.insert(projects).values(values).returning({ id: projects.id });
-      pid = row.id;
-    }
+    const { pid, finalSlug, removed } = await db.transaction(async (tx) => {
+      let pid = id;
+      let removed: string[] = [];
+      let oldSlug: string | undefined;
+
+      if (pid) {
+        const [old] = await tx.select({ slug: projects.slug, gallery: projects.gallery }).from(projects).where(eq(projects.id, pid)).limit(1);
+        if (!old) throw new Error("NOT_FOUND");
+        oldSlug = old.slug;
+        const keep = new Set(images);
+        removed = old.gallery.filter((u) => !keep.has(u));
+      }
+      const finalSlug = await uniqueSlug(tx, projects, projectSlugRedirects, data.slug, pid);
+      const values = { ...data, slug: finalSlug, areaSqft: data.areaSqft || null, durationWeeks: data.durationWeeks || null, coverUrl: images[0], gallery: images };
+
+      if (pid) {
+        await tx.update(projects).set(values).where(eq(projects.id, pid));
+        if (oldSlug && oldSlug !== finalSlug) {
+          await tx
+            .insert(projectSlugRedirects)
+            .values({ oldSlug, projectId: pid })
+            .onConflictDoUpdate({ target: projectSlugRedirects.oldSlug, set: { projectId: pid } });
+        }
+      } else {
+        const [row] = await tx.insert(projects).values(values).returning({ id: projects.id });
+        pid = row.id;
+      }
+      return { pid: pid!, finalSlug, removed };
+    });
     removed.forEach((u) => { const p = cloudinaryPublicIdFromUrl(u); if (p) void destroyAsset(p); });
-    revalidateProjects(data.slug);
+    revalidateProjects(finalSlug);
     revalidatePath("/admin/projects");
-    return { ok: true, data: { id: pid }, message: "Project saved" };
+    const message = finalSlug === data.slug ? "Project saved" : `Project saved. URL: /interior-design/${finalSlug}`;
+    return { ok: true, data: { id: pid, slug: finalSlug }, message };
   } catch (e) {
     if (isUniqueViolation(e)) return { ok: false, error: "That URL slug is already used by another project.", fieldErrors: { slug: "Already in use" } };
+    if ((e as Error).message === "NOT_FOUND") return { ok: false, error: "This project no longer exists." };
     console.error("saveProject", e);
     return { ok: false, error: GENERIC };
   }

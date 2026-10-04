@@ -8,6 +8,13 @@
       "when": 1790356590467,
       "tag": "0000_outgoing_scalphunter",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791091615948,
+      "tag": "0001_slug_redirects",
+      "breakpoints": true
     }
   ]
 }

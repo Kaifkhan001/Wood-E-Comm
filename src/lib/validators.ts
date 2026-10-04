@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { slugify } from "./utils";
 
 /** Plain-text sanitiser: trims, removes control chars and any HTML tags. */
 export const clean = (s: string) =>
@@ -93,12 +94,11 @@ export const orderSchema = z.object({
 });
 
 /* ── Admin ── */
-const slug = z
-  .string()
-  .trim()
-  .toLowerCase()
-  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lowercase letters, numbers and hyphens")
-  .max(80);
+// Normalises instead of rejecting: slugify() always returns a valid, non-empty
+// slug (falling back to a random one for input that's entirely symbols/emoji),
+// so there's nothing left here to reject. Uniqueness (appending -2, -3…) is
+// handled in the action, since that needs a database lookup.
+export const slug = z.string().max(400).transform((s) => slugify(s));
 
 export const productImageInput = z.object({
   publicId: z.string().regex(/^[\w\-/]+$/).max(200).nullable().optional(),

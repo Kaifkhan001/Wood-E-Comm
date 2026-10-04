@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { saveProduct } from "@/app/actions/admin";
 import { ImageUploader, StockUrlField, type UploaderImg } from "@/components/admin/image-uploader";
+import { SlugField } from "@/components/admin/slug-field";
 import { UPLOAD_FOLDER } from "@/lib/cloudinary-folders";
 import { slugify } from "@/lib/utils";
 import { SaveBar } from "./save-bar";
@@ -53,10 +54,12 @@ export function ProductForm({ id, initial, categories }: { id: string | null; in
       toast.error(res.error);
       return;
     }
-    toast.success("Product saved");
+    toast.success(res.message ?? "Product saved");
+    const finalV = res.data?.slug ? { ...v, slug: res.data.slug } : v;
     if (!id && res.data) router.replace(`/admin/products/${res.data.id}`);
     else {
-      setBaseline(v);
+      setV(finalV);
+      setBaseline(finalV);
       setSaved(true);
       router.refresh();
     }
@@ -75,12 +78,12 @@ export function ProductForm({ id, initial, categories }: { id: string | null; in
             <F k="name" />
           </div>
           <div>
-            <label htmlFor="p-slug" className="label-text">URL slug</label>
-            <div className="flex items-center rounded-md border border-line bg-white focus-within:border-bottle">
-              <span className="pl-3.5 text-sm text-muted">/product/</span>
-              <input id="p-slug" className="w-full bg-transparent py-2.5 pr-3.5 text-[15px] outline-none" value={v.slug} maxLength={80}
-                onChange={(e) => { setSlugTouched(true); set("slug", slugify(e.target.value)); }} />
-            </div>
+            <SlugField
+              value={v.slug}
+              onChange={(s) => { setSlugTouched(true); set("slug", s); }}
+              prefix="/product/"
+              hint={id ? "URL stays the same. Edit it only if needed." : undefined}
+            />
             <F k="slug" />
           </div>
           <div>

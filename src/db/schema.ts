@@ -144,6 +144,18 @@ export const productImages = pgTable(
   (t) => [index("product_images_product_idx").on(t.productId)],
 );
 
+// When a product's (or project's) slug is edited, the old slug moves here so the
+// old URL keeps working: the product page 308-redirects to the new one instead of
+// 404ing. A product can be deleted entirely (cascade); a slug freed by one product
+// being renamed again points redirects at the LATEST slug, never a chain.
+export const productSlugRedirects = pgTable("product_slug_redirects", {
+  oldSlug: text("old_slug").primaryKey(),
+  productId: uuid("product_id")
+    .notNull()
+    .references(() => products.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 /* ───────────────────────── Orders (order requests) ───────────────────────── */
 
 export const orderStatusEnum = pgEnum("order_status", [
@@ -209,6 +221,14 @@ export const projects = pgTable("projects", {
   gallery: jsonb("gallery").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
   isPublished: boolean("is_published").notNull().default(true),
   position: integer("position").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const projectSlugRedirects = pgTable("project_slug_redirects", {
+  oldSlug: text("old_slug").primaryKey(),
+  projectId: uuid("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
