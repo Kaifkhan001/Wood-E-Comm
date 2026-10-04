@@ -47,7 +47,7 @@ export function ProductForm({ id, initial, categories }: { id: string | null; in
       price: Number(v.price),
       mrp: v.mrp ? Number(v.mrp) : null,
       stock: Number(v.stock || 0),
-      images: v.images.map((i) => ({ publicId: i.publicId ?? null, url: i.url ?? null, alt: i.alt })),
+      images: v.images.map((i) => ({ publicId: i.publicId ?? null, url: i.url ?? null, alt: i.alt, fit: i.fit ?? "contain" })),
     });
     setPending(false);
     if (!res.ok) {

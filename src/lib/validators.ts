@@ -108,6 +108,7 @@ export const productImageInput = z.object({
     .nullable()
     .optional(),
   alt: text(160).default(""),
+  fit: z.enum(["contain", "cover"]).default("contain"),
 });
 
 export const productSchema = z.object({

@@ -27,7 +27,7 @@ export default async function EditProduct({ params }: PageProps<"/admin/products
           name: p.name, slug: p.slug, shortDescription: p.shortDescription, description: p.description, categoryId: p.categoryId,
           price: String(p.price), mrp: p.mrp ? String(p.mrp) : "", material: p.material, color: p.color, dimensions: p.dimensions,
           stock: String(p.stock), isActive: p.isActive, isFeatured: p.isFeatured,
-          images: p.images.map((i) => ({ publicId: i.publicId, url: i.url, alt: i.alt })),
+          images: p.images.map((i) => ({ publicId: i.publicId, url: i.url, alt: i.alt, fit: i.fit === "cover" ? "cover" as const : "contain" as const })),
         }}
       />
     </>

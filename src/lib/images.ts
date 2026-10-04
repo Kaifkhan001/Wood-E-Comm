@@ -62,6 +62,25 @@ export function imageSrc(
   return "/placeholder.svg";
 }
 
+/**
+ * A product image's display mode (set per image by the admin, see
+ * product_images.fit): "contain" pads to show the whole product -- right for
+ * studio/cutout photos, where a smart crop could otherwise cut off part of
+ * the product -- "cover" fills the frame, right for lifestyle/room photos.
+ * Used for every square product frame: listing cards, home page, related
+ * products, cart and admin thumbnails. Works for Unsplash/stock URLs too:
+ * the Cloudinary transform is a no-op there, but the CSS object-fit class
+ * still applies.
+ */
+export function cardImage(img: { publicId?: string | null; url?: string | null; fit?: string | null }, width: number) {
+  const fit: ImageFit = img.fit === "cover" ? "cover" : "contain";
+  return {
+    src: imageSrc(img, width, { fit, ar: "1:1" }),
+    className: fit === "contain" ? "object-contain" : "object-cover",
+    frameClassName: fit === "contain" ? "bg-white" : "bg-cane/30",
+  };
+}
+
 /** Unsplash helper for seed/stock images, always requests a compressed size. */
 export const unsplash = (id: string, w = 1400) =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=70`;

@@ -5,8 +5,8 @@ import { categories, productImages, products } from "@/db/schema";
 import { CardList, CardRow, Empty, PageHeader, Table } from "@/components/admin/ui";
 import { ProductRowActions } from "@/components/admin/product-row-actions";
 import { AdminImageThumb } from "@/components/admin/image-thumb";
-import { imageSrc } from "@/lib/images";
-import { formatINR } from "@/lib/utils";
+import { cardImage } from "@/lib/images";
+import { cn, formatINR } from "@/lib/utils";
 
 export const metadata = { title: "Products" };
 export const dynamic = "force-dynamic";
@@ -45,11 +45,13 @@ export default async function AdminProducts({ searchParams }: PageProps<"/admin/
       ) : (
         <>
           <CardList className="md:hidden">
-            {rows.map((p) => (
+            {rows.map((p) => {
+              const thumb = p.images[0] ? cardImage(p.images[0], 100) : null;
+              return (
               <li key={p.id} className="rounded-lg border border-line bg-white p-4">
                 <div className="flex items-center gap-3">
-                  <div className="relative h-14 w-12 shrink-0 overflow-hidden rounded-sm bg-cane/30">
-                    {p.images[0] && <AdminImageThumb src={imageSrc(p.images[0], 120)} sizes="48px" className="object-cover" />}
+                  <div className={cn("relative h-12 w-12 shrink-0 overflow-hidden rounded-sm", thumb?.frameClassName ?? "bg-cane/30")}>
+                    {thumb && <AdminImageThumb src={thumb.src} sizes="48px" className={thumb.className} />}
                   </div>
                   <div className="min-w-0 flex-1">
                     <Link href={`/admin/products/${p.id}`} className="font-medium hover:underline">{p.name}</Link>
@@ -66,17 +68,20 @@ export default async function AdminProducts({ searchParams }: PageProps<"/admin/
                   <ProductRowActions id={p.id} slug={p.slug} isActive={p.isActive} name={p.name} />
                 </div>
               </li>
-            ))}
+              );
+            })}
           </CardList>
           <Table className="hidden md:block">
             <thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Stock</th><th>Visible</th><th className="text-right">Actions</th></tr></thead>
             <tbody>
-              {rows.map((p) => (
+              {rows.map((p) => {
+                const thumb = p.images[0] ? cardImage(p.images[0], 100) : null;
+                return (
                 <tr key={p.id}>
                   <td>
                     <div className="flex items-center gap-3">
-                      <div className="relative h-12 w-10 shrink-0 overflow-hidden rounded-sm bg-cane/30">
-                        {p.images[0] && <AdminImageThumb src={imageSrc(p.images[0], 120)} sizes="40px" className="object-cover" />}
+                      <div className={cn("relative h-10 w-10 shrink-0 overflow-hidden rounded-sm", thumb?.frameClassName ?? "bg-cane/30")}>
+                        {thumb && <AdminImageThumb src={thumb.src} sizes="40px" className={thumb.className} />}
                       </div>
                       <div><Link href={`/admin/products/${p.id}`} className="font-medium hover:underline">{p.name}</Link>{p.isFeatured && <span className="ml-2 text-xs text-brass">Featured</span>}<p className="text-muted">{p.material}</p></div>
                     </div>
@@ -86,7 +91,8 @@ export default async function AdminProducts({ searchParams }: PageProps<"/admin/
                   <td className={p.stock === 0 ? "font-medium text-danger" : ""}>{p.stock}</td>
                   <td colSpan={2}><ProductRowActions id={p.id} slug={p.slug} isActive={p.isActive} name={p.name} /></td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </Table>
         </>

@@ -118,7 +118,7 @@ export async function saveProduct(id: string | null, input: unknown): Promise<Ac
         pid = row.id;
       }
       if (images.length) {
-        await tx.insert(productImages).values(images.map((img, i) => ({ productId: pid!, publicId: img.publicId ?? null, url: img.url ?? null, alt: img.alt || data.name, position: i })));
+        await tx.insert(productImages).values(images.map((img, i) => ({ productId: pid!, publicId: img.publicId ?? null, url: img.url ?? null, alt: img.alt || data.name, fit: img.fit, position: i })));
       }
       return { pid: pid!, finalSlug, removed: removedPublicIds };
     });

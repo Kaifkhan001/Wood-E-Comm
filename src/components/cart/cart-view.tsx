@@ -2,8 +2,8 @@
 import Link from "next/link";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { SmartImage } from "@/components/ui/smart-image";
-import { imageSrc } from "@/lib/images";
-import { formatINR } from "@/lib/utils";
+import { cardImage } from "@/lib/images";
+import { cn, formatINR } from "@/lib/utils";
 import { useCartDetails } from "./use-cart-details";
 
 export function CartView() {
@@ -31,10 +31,12 @@ export function CartView() {
   return (
     <div className="mt-10 grid gap-10 lg:grid-cols-[1.6fr_1fr]">
       <ul className="divide-y divide-line border-y border-line">
-        {rows.map((r) => (
+        {rows.map((r) => {
+          const thumb = r.images[0] ? cardImage(r.images[0], 200) : null;
+          return (
           <li key={r.id} className="flex gap-4 py-5">
-            <Link href={`/product/${r.slug}`} className="relative h-28 w-24 shrink-0 overflow-hidden rounded-sm bg-cane/30">
-              {r.images[0] && <SmartImage src={imageSrc(r.images[0], 300)} alt={r.name} fill sizes="96px" className="object-cover" />}
+            <Link href={`/product/${r.slug}`} className={cn("relative h-24 w-24 shrink-0 overflow-hidden rounded-sm", thumb?.frameClassName ?? "bg-cane/30")}>
+              {thumb && <SmartImage src={thumb.src} alt={r.name} fill sizes="96px" className={thumb.className} />}
             </Link>
             <div className="flex min-w-0 flex-1 flex-col justify-between gap-3 sm:flex-row">
               <div className="min-w-0">
@@ -55,7 +57,8 @@ export function CartView() {
               </div>
             </div>
           </li>
-        ))}
+          );
+        })}
       </ul>
       <aside className="h-fit rounded-lg bg-paper p-6 lg:sticky lg:top-28">
         <h2 className="font-sans text-lg font-semibold">Summary</h2>

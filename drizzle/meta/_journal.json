@@ -15,6 +15,13 @@
       "when": 1791091615948,
       "tag": "0001_slug_redirects",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791092743679,
+      "tag": "0002_product_image_fit",
+      "breakpoints": true
     }
   ]
 }

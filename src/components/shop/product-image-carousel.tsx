@@ -7,7 +7,7 @@ import { SmartImage } from "@/components/ui/smart-image";
 import { cn } from "@/lib/utils";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 
-type Img = { src: string; alt: string };
+type Img = { src: string; alt: string; fit?: "contain" | "cover" };
 
 const AUTO_ADVANCE_MS = 1500;
 
@@ -68,7 +68,7 @@ export function ProductImageCarousel({ images, name, priority }: { images: Img[]
 
   return (
     <div
-      className="group/card relative aspect-[4/5] w-full min-w-0 overflow-hidden rounded-sm bg-cane/30"
+      className="group/card relative aspect-square w-full min-w-0 overflow-hidden rounded-sm bg-white"
       onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave}
     >
@@ -84,7 +84,7 @@ export function ProductImageCarousel({ images, name, priority }: { images: Img[]
                   priority={idx === 0 && priority}
                   sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
                   className={cn(
-                    "object-cover",
+                    img.fit === "cover" ? "object-cover" : "object-contain",
                     idx === 0 && "transition-transform duration-700 ease-[cubic-bezier(.22,1,.36,1)] group-hover/card:scale-[1.04]",
                   )}
                 />

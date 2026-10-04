@@ -15,9 +15,12 @@ import { CSS } from "@dnd-kit/utilities";
 import { ArrowDown, ArrowUp, GripVertical, ImagePlus, RotateCcw, Star, Trash2, X } from "lucide-react";
 import { SmartImage } from "@/components/ui/smart-image";
 import { imageSrc } from "@/lib/images";
+import { detectImageFit } from "@/lib/detect-image-fit";
+import { cn } from "@/lib/utils";
 import { CropDialog } from "./crop-dialog";
 
-export type UploaderImg = { publicId?: string | null; url?: string | null; alt: string };
+export type ImgFit = "contain" | "cover";
+export type UploaderImg = { publicId?: string | null; url?: string | null; alt: string; fit?: ImgFit };
 
 const MAX_BYTES = 15 * 1024 * 1024;
 const ACCEPT_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif", "image/heic", "image/heif"];
@@ -34,6 +37,7 @@ type Pending = {
   progress: number;
   error?: string;
   lowRes?: boolean;
+  fit: ImgFit;
 };
 type CropTask = { id: string; file: File; previewUrl: string };
 
@@ -102,6 +106,7 @@ function SortableThumb({
   onRemove,
   onSetCover,
   onMove,
+  onFitChange,
   showAlt,
   canMoveUp,
   canMoveDown,
@@ -113,6 +118,7 @@ function SortableThumb({
   onRemove: () => void;
   onSetCover: () => void;
   onMove: (dir: -1 | 1) => void;
+  onFitChange: (fit: ImgFit) => void;
   showAlt: boolean;
   canMoveUp: boolean;
   canMoveDown: boolean;
@@ -120,6 +126,7 @@ function SortableThumb({
   const id = `img-${index}`;
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const [failed, setFailed] = useState(false);
+  const fit = img.fit ?? "contain";
 
   return (
     <li
@@ -127,8 +134,16 @@ function SortableThumb({
       style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}
       className="rounded-md border border-line bg-white p-2"
     >
-      <div className="relative aspect-[4/5] overflow-hidden rounded-sm bg-cane/30">
-        <SmartImage src={imageSrc(img, 300, { fit: "cover", ar: "4:5" })} alt="" fill sizes="150px" className="object-cover" onError={() => setFailed(true)} />
+      {/* Square frame matches the real card frame, so this preview shows exactly how it will look. */}
+      <div className={cn("relative aspect-square overflow-hidden rounded-sm", fit === "contain" ? "bg-white" : "bg-cane/30")}>
+        <SmartImage
+          src={imageSrc(img, 300, { fit, ar: "1:1" })}
+          alt=""
+          fill
+          sizes="150px"
+          className={fit === "contain" ? "object-contain" : "object-cover"}
+          onError={() => setFailed(true)}
+        />
         {failed && <span className="absolute left-1 top-1 rounded-full bg-danger px-1.5 py-0.5 text-[10px] font-medium text-white">Image failed to load</span>}
         {isCover && <span className="absolute left-1 top-1 rounded-full bg-paper px-1.5 py-0.5 text-[10px] font-medium">Cover</span>}
         <button
@@ -139,6 +154,24 @@ function SortableThumb({
           className="absolute right-1 top-1 flex h-7 w-7 cursor-grab touch-none items-center justify-center rounded-full bg-paper/90 text-ink active:cursor-grabbing"
         >
           <GripVertical className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="mt-1.5 grid grid-cols-2 gap-1 rounded-full bg-plaster p-0.5 text-[11px] font-medium">
+        <button
+          type="button"
+          onClick={() => onFitChange("contain")}
+          aria-pressed={fit === "contain"}
+          className={cn("rounded-full px-1.5 py-1", fit === "contain" ? "bg-bottle text-paper" : "text-muted hover:text-ink")}
+        >
+          Fit product
+        </button>
+        <button
+          type="button"
+          onClick={() => onFitChange("cover")}
+          aria-pressed={fit === "cover"}
+          className={cn("rounded-full px-1.5 py-1", fit === "cover" ? "bg-bottle text-paper" : "text-muted hover:text-ink")}
+        >
+          Fill frame
         </button>
       </div>
       {showAlt && (
@@ -244,12 +277,12 @@ export function ImageUploader({
   }
 
   function queueUpload(id: string, file: File, previewUrl: string) {
-    setPending((p) => [...p, { id, file, previewUrl, status: "queued", progress: 0 }]);
+    setPending((p) => [...p, { id, file, previewUrl, status: "queued", progress: 0, fit: "contain" }]);
     const img = new window.Image();
     img.onload = () => {
-      if (Math.min(img.naturalWidth, img.naturalHeight) < LOW_RES_EDGE) {
-        setPending((p) => p.map((x) => (x.id === id ? { ...x, lowRes: true } : x)));
-      }
+      const patch: Partial<Pending> = { fit: detectImageFit(img) };
+      if (Math.min(img.naturalWidth, img.naturalHeight) < LOW_RES_EDGE) patch.lowRes = true;
+      setPending((p) => p.map((x) => (x.id === id ? { ...x, ...patch } : x)));
     };
     img.src = previewUrl;
   }
@@ -290,7 +323,7 @@ export function ImageUploader({
       setPending((p) => p.map((x) => (x.id === next.id ? { ...x, progress: pct } : x)));
     }, holder)
       .then((data) => {
-        onChange([...valueRef.current, { publicId: data.public_id, url: data.secure_url, alt: altDefault }]);
+        onChange([...valueRef.current, { publicId: data.public_id, url: data.secure_url, alt: altDefault, fit: next.fit }]);
         setPending((p) => p.filter((x) => x.id !== next.id));
         URL.revokeObjectURL(next.previewUrl);
         xhrRefs.current.delete(next.id);
@@ -399,6 +432,7 @@ export function ImageUploader({
                 onRemove={() => onChange(value.filter((_, j) => j !== i))}
                 onSetCover={() => onChange([img, ...value.filter((_, j) => j !== i)])}
                 onMove={(dir) => move(i, dir)}
+                onFitChange={(fit) => onChange(value.map((x, j) => (j === i ? { ...x, fit } : x)))}
                 canMoveUp={i > 0}
                 canMoveDown={i < value.length - 1}
               />
@@ -412,7 +446,7 @@ export function ImageUploader({
           {pending.map((p) => (
             // eslint-disable-next-line react/jsx-key
             <li key={p.id} className="rounded-md border border-line p-2">
-              <div className="relative aspect-[4/5] overflow-hidden rounded-sm bg-cane/30">
+              <div className="relative aspect-square overflow-hidden rounded-sm bg-cane/30">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={p.previewUrl} alt="" className="h-full w-full object-cover" />
                 {p.status === "uploading" && (

@@ -140,6 +140,9 @@ export const productImages = pgTable(
     url: text("url"),
     alt: text("alt").notNull().default(""),
     position: integer("position").notNull().default(0),
+    // "contain" shows the whole product, padded (right for studio/cutout photos on a
+    // plain background); "cover" fills the frame (right for lifestyle/room photos).
+    fit: text("fit").notNull().default("contain"),
   },
   (t) => [index("product_images_product_idx").on(t.productId)],
 );
