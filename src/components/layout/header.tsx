@@ -2,13 +2,14 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Menu, Search, User, X } from "lucide-react";
 import { nav, site, whatsappLink } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { CartButton } from "@/components/cart/cart-button";
 import { useSession } from "@/lib/auth-client";
+import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 import { InstagramIcon, WhatsAppIcon } from "@/components/ui/icons";
 
 export function Header() {
@@ -19,8 +20,14 @@ export function Header() {
 
   useEffect(() => setOpen(false), [pathname]);
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
-    onScroll();
+    // Guard against calling setState on every scroll frame: only the crossing
+    // of the 8px threshold should ever trigger a re-render.
+    let was = window.scrollY > 8;
+    const onScroll = () => {
+      const now = window.scrollY > 8;
+      if (now !== was) { was = now; setScrolled(now); }
+    };
+    setScrolled(was);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
@@ -43,28 +50,7 @@ export function Header() {
           <Image src="/brand/logo.png" alt="Wood & Wonders" width={600} height={428} priority className="h-11 w-auto lg:h-16" />
         </Link>
 
-        <nav aria-label="Main" className="hidden lg:block">
-          <ul className="flex items-center gap-8">
-            {nav.map((item) => {
-              const active = pathname === item.href || pathname.startsWith(item.href + "/");
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={cn(
-                      "relative py-2 text-[15px] transition-colors hover:text-bottle",
-                      "after:absolute after:inset-x-0 after:-bottom-0.5 after:h-px after:origin-left after:bg-bottle after:transition-transform after:duration-300",
-                      active ? "text-bottle after:scale-x-100" : "after:scale-x-0 hover:after:scale-x-100",
-                    )}
-                    aria-current={active ? "page" : undefined}
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
+        <NavLinks pathname={pathname} />
 
         <div className="flex items-center gap-0.5">
           <Link href="/furniture?focus=search" className="hidden h-11 w-11 items-center justify-center rounded-full hover:bg-ink/5 sm:inline-flex" aria-label="Search furniture">
@@ -159,5 +145,58 @@ export function Header() {
         )}
       </AnimatePresence>
     </header>
+  );
+}
+
+/** A single sliding indicator that glides between links on hover/focus and settles
+ * under the active page when the pointer leaves, measured via DOM rects rather than
+ * a shared layoutId so it can smoothly fade out (no active match) instead of jumping. */
+function NavLinks({ pathname }: { pathname: string }) {
+  const reducedMotion = usePrefersReducedMotion();
+  const [hovered, setHovered] = useState<string | null>(null);
+  const activeHref = nav.find((item) => pathname === item.href || pathname.startsWith(item.href + "/"))?.href ?? null;
+  const indicatorHref = hovered ?? activeHref;
+  const linkRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
+  const [rect, setRect] = useState<{ left: number; width: number } | null>(null);
+
+  useEffect(() => {
+    if (!indicatorHref) { setRect(null); return; }
+    const el = linkRefs.current[indicatorHref];
+    if (el) setRect({ left: el.offsetLeft, width: el.offsetWidth });
+  }, [indicatorHref]);
+
+  return (
+    <nav aria-label="Main" className="hidden lg:block" onMouseLeave={() => setHovered(null)}>
+      <ul className="relative flex items-center gap-8">
+        {nav.map((item) => {
+          const active = item.href === activeHref;
+          return (
+            <li key={item.href}>
+              <Link
+                ref={(el) => { linkRefs.current[item.href] = el; }}
+                href={item.href}
+                onMouseEnter={() => setHovered(item.href)}
+                onFocus={() => setHovered(item.href)}
+                onBlur={() => setHovered(null)}
+                className={cn(
+                  "block py-2 text-[15px] transition-colors duration-200",
+                  item.href === indicatorHref ? "text-bottle" : "text-ink hover:text-bottle",
+                )}
+                aria-current={active ? "page" : undefined}
+              >
+                {item.label}
+              </Link>
+            </li>
+          );
+        })}
+        <motion.span
+          aria-hidden
+          className="pointer-events-none absolute -bottom-0.5 h-0.5 rounded-full bg-bottle"
+          initial={false}
+          animate={rect ? { left: rect.left, width: rect.width, opacity: 1 } : { opacity: 0 }}
+          transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 500, damping: 40 }}
+        />
+      </ul>
+    </nav>
   );
 }
