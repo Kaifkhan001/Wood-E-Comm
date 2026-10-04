@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { saveProduct } from "@/app/actions/admin";
 import { ImageUploader, StockUrlField, type UploaderImg } from "@/components/admin/image-uploader";
 import { SlugField } from "@/components/admin/slug-field";
+import { MaterialCombobox } from "@/components/admin/material-combobox";
 import { UPLOAD_FOLDER } from "@/lib/cloudinary-folders";
 import { slugify } from "@/lib/utils";
 import { SaveBar } from "./save-bar";
@@ -128,9 +129,7 @@ export function ProductForm({ id, initial, categories }: { id: string | null; in
           </div>
         </section>
         <section className="space-y-4 rounded-lg border border-line bg-white p-5">
-          <div><label htmlFor="p-mat" className="label-text">Material <span className="font-normal text-muted">(used for filters)</span></label><input id="p-mat" className="field bg-white" list="materials" value={v.material} maxLength={40} onChange={(e) => set("material", e.target.value)} /><F k="material" />
-            <datalist id="materials">{["Sheesham wood", "Teak wood", "Mango wood", "Engineered wood", "Cane & rattan"].map((m) => <option key={m} value={m} />)}</datalist>
-          </div>
+          <div><label htmlFor="p-mat" className="label-text">Material <span className="font-normal text-muted">(used for filters)</span></label><MaterialCombobox id="p-mat" value={v.material} onChange={(m) => set("material", m)} /><F k="material" /></div>
           <div><label htmlFor="p-color" className="label-text">Finish or colour</label><input id="p-color" className="field bg-white" value={v.color} maxLength={40} onChange={(e) => set("color", e.target.value)} /></div>
           <div><label htmlFor="p-dim" className="label-text">Dimensions</label><input id="p-dim" className="field bg-white" value={v.dimensions} maxLength={120} onChange={(e) => set("dimensions", e.target.value)} placeholder="W 198 × D 86 × H 82 cm" /></div>
         </section>

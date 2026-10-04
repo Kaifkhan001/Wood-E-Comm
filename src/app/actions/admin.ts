@@ -21,6 +21,7 @@ import {
 import { assertAdmin } from "@/lib/session";
 import { destroyAsset } from "@/lib/cloudinary";
 import { categorySchema, productSchema, projectSchema, zodErrors, type ActionResult } from "@/lib/validators";
+import { canonicalizeMaterial } from "@/lib/catalog-options";
 
 type Tx = PgTransaction<any, any, any>;
 
@@ -80,7 +81,8 @@ export async function saveProduct(id: string | null, input: unknown): Promise<Ac
 
   const parsed = productSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Please fix the highlighted fields.", fieldErrors: zodErrors(parsed.error) };
-  const { images, ...data } = parsed.data;
+  const { images, ...rest } = parsed.data;
+  const data = { ...rest, material: canonicalizeMaterial(rest.material) };
   if (data.mrp && data.mrp < data.price) return { ok: false, error: "MRP can't be lower than the selling price.", fieldErrors: { mrp: "Must be at least the price" } };
   if (images.some((i) => !i.publicId && !i.url)) return { ok: false, error: "One of the images is missing." };
 
