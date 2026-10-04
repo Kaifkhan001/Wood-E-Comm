@@ -10,10 +10,46 @@ import { imageSrc } from "@/lib/images";
 import { breadcrumbJsonLd, JsonLd, pageMeta } from "@/lib/seo";
 import { site, whatsappLink } from "@/lib/site";
 import { discountPercent, formatINR } from "@/lib/utils";
+import { ASSEMBLY_OPTIONS, formatSpecValue, specFieldsFor, type SpecGroup } from "@/lib/catalog-options";
 import { Gallery } from "@/components/shop/gallery";
 import { AddToCart } from "@/components/cart/add-to-cart";
 import { ProductGrid } from "@/components/shop/product-card";
 import { WhatsAppIcon } from "@/components/ui/icons";
+
+type ProductRow = NonNullable<Awaited<ReturnType<typeof getProductBySlug>>>;
+
+const SPEC_GROUP_ORDER: SpecGroup[] = ["Dimensions & weight", "Materials", "Features", "Warranty & care"];
+
+/** Groups every filled spec -- the fixed product columns plus the category's
+ * template fields from `specs` -- into the four sections shown on the page. */
+function buildSpecGroups(p: ProductRow) {
+  const groups: Record<SpecGroup, { label: string; value: string }[]> = {
+    "Dimensions & weight": [],
+    Materials: [],
+    Features: [],
+    "Warranty & care": [],
+  };
+
+  const dims = p.widthCm && p.depthCm && p.heightCm ? `W ${p.widthCm} × D ${p.depthCm} × H ${p.heightCm} cm` : p.dimensions || null;
+  if (dims) groups["Dimensions & weight"].push({ label: "Product dimensions (W × D × H)", value: dims });
+  if (p.weightKg) groups["Dimensions & weight"].push({ label: "Item weight", value: `${p.weightKg} kg` });
+  if (p.material) groups.Materials.push({ label: "Material", value: p.material });
+  if (p.color) groups.Materials.push({ label: "Colour / finish", value: p.color });
+  groups.Features.push({ label: "Category", value: p.category.name });
+  if (p.brand) groups["Warranty & care"].push({ label: "Brand", value: p.brand });
+  if (p.sku) groups["Warranty & care"].push({ label: "SKU", value: p.sku });
+  if (p.assembly) groups["Warranty & care"].push({ label: "Assembly", value: ASSEMBLY_OPTIONS.find((a) => a.value === p.assembly)?.label ?? p.assembly });
+  if (p.warrantyMonths) groups["Warranty & care"].push({ label: "Warranty", value: `${p.warrantyMonths} months` });
+  if (p.countryOfOrigin) groups["Warranty & care"].push({ label: "Country of origin", value: p.countryOfOrigin });
+
+  for (const f of specFieldsFor(p.category.slug)) {
+    const v = p.specs[f.key];
+    if (v === undefined) continue;
+    (groups[f.group ?? "Features"]).push({ label: f.label, value: formatSpecValue(f, v) });
+  }
+
+  return SPEC_GROUP_ORDER.map((group) => ({ group, rows: groups[group] })).filter((g) => g.rows.length > 0);
+}
 
 export const revalidate = 300;
 
@@ -44,9 +80,10 @@ export async function generateMetadata({ params }: PageProps<"/product/[slug]">)
     if (redirectSlug) return pageMeta({ title: "Product moved", description: "", path: `/product/${redirectSlug}`, noindex: true });
     return { title: "Product not found" };
   }
+  const descBase = p.shortDescription || p.highlights[0] || "";
   return pageMeta({
     title: `${p.name}, ${p.material}`,
-    description: `${p.shortDescription} ${formatINR(p.price)}. Free delivery and installation in Mumbai.`.slice(0, 160),
+    description: `${descBase} ${formatINR(p.price)}. Free delivery and installation in Mumbai.`.slice(0, 160),
     path: `/product/${p.slug}`,
     image: p.images[0] ? imageSrc(p.images[0], 1200) : undefined,
   });
@@ -64,6 +101,14 @@ export default async function ProductPage({ params }: PageProps<"/product/[slug]
   const off = discountPercent(p.price, p.mrp);
   const jsonLdImages = p.images.map((img) => imageSrc(img, 1200, { fit: "cover", ar: "4:5" }));
   const url = `${site.url}/product/${p.slug}`;
+  const specGroups = buildSpecGroups(p);
+
+  const additionalProperty = specFieldsFor(p.category.slug)
+    .map((f) => {
+      const v = p.specs[f.key];
+      return v === undefined ? null : { "@type": "PropertyValue", name: f.label, value: formatSpecValue(f, v) };
+    })
+    .filter((v): v is { "@type": "PropertyValue"; name: string; value: string } => v !== null);
 
   return (
     <div className="container-x pt-8 lg:pt-12">
@@ -74,11 +119,16 @@ export default async function ProductPage({ params }: PageProps<"/product/[slug]
           name: p.name,
           description: p.shortDescription,
           image: jsonLdImages,
-          sku: p.id,
+          sku: p.sku || p.id,
           material: p.material,
-          color: p.color,
+          color: p.color || undefined,
           category: p.category.name,
-          brand: { "@type": "Brand", name: site.name },
+          brand: { "@type": "Brand", name: p.brand || site.name },
+          ...(p.widthCm ? { width: { "@type": "QuantitativeValue", value: p.widthCm, unitCode: "CMT" } } : {}),
+          ...(p.depthCm ? { depth: { "@type": "QuantitativeValue", value: p.depthCm, unitCode: "CMT" } } : {}),
+          ...(p.heightCm ? { height: { "@type": "QuantitativeValue", value: p.heightCm, unitCode: "CMT" } } : {}),
+          ...(p.weightKg ? { weight: { "@type": "QuantitativeValue", value: p.weightKg, unitCode: "KGM" } } : {}),
+          ...(additionalProperty.length ? { additionalProperty } : {}),
           offers: {
             "@type": "Offer",
             url,
@@ -108,8 +158,10 @@ export default async function ProductPage({ params }: PageProps<"/product/[slug]
         </ol>
       </nav>
 
-      <div className="mt-6 grid gap-10 lg:grid-cols-[1.15fr_1fr] lg:gap-16">
-        <Gallery images={p.images} name={p.name} />
+      <div className="mt-6 grid gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-start lg:gap-16">
+        <div className="lg:sticky lg:top-24">
+          <Gallery images={p.images} name={p.name} />
+        </div>
 
         <div className="lg:pt-4">
           <p className="text-sm text-muted">{p.material}</p>
@@ -126,6 +178,17 @@ export default async function ProductPage({ params }: PageProps<"/product/[slug]
           <p className="mt-1 text-sm text-muted">Inclusive of GST. You pay after our team confirms your order.</p>
           <p className="mt-6 text-[17px] leading-relaxed">{p.shortDescription}</p>
 
+          {p.highlights.length > 0 && (
+            <ul className="mt-5 space-y-2 text-[15px]">
+              {p.highlights.map((h, i) => (
+                <li key={i} className="flex gap-2.5">
+                  <span aria-hidden className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-bottle" />
+                  {h}
+                </li>
+              ))}
+            </ul>
+          )}
+
           <div className="mt-8">
             <AddToCart productId={p.id} name={p.name} inStock={p.stock > 0} />
             {p.stock > 0 && p.stock <= 5 && <p className="mt-3 text-sm text-danger">Only {p.stock} left.</p>}
@@ -140,21 +203,24 @@ export default async function ProductPage({ params }: PageProps<"/product/[slug]
             <WhatsAppIcon className="h-5 w-5" /> Ask about this piece on WhatsApp
           </a>
 
-          <dl className="mt-10 divide-y divide-line border-y border-line text-[15px]">
-            {[
-              ["Material", p.material],
-              ["Finish", p.color],
-              ["Dimensions", p.dimensions],
-              ["Category", p.category.name],
-            ]
-              .filter(([, v]) => v)
-              .map(([k, v]) => (
-                <div key={k} className="grid grid-cols-[120px_1fr] gap-4 py-3">
-                  <dt className="text-muted">{k}</dt>
-                  <dd>{v}</dd>
+          {specGroups.length > 0 && (
+            <div className="mt-10 space-y-6">
+              <h2 className="text-xl font-semibold">Specifications</h2>
+              {specGroups.map(({ group, rows }) => (
+                <div key={group}>
+                  <h3 className="text-sm font-semibold text-muted">{group}</h3>
+                  <dl className="mt-2 divide-y divide-line border-y border-line text-[15px]">
+                    {rows.map((r) => (
+                      <div key={r.label} className="grid grid-cols-[minmax(110px,40%)_minmax(0,1fr)] gap-4 py-2.5">
+                        <dt className="text-muted">{r.label}</dt>
+                        <dd className="min-w-0 break-words">{r.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
                 </div>
               ))}
-          </dl>
+            </div>
+          )}
 
           <ul className="mt-8 space-y-4 text-[15px]">
             <li className="flex gap-3"><Truck className="mt-0.5 h-5 w-5 shrink-0 text-bottle" strokeWidth={1.6} /> Free delivery and installation in Mumbai, Thane and Pune</li>

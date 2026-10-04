@@ -5,6 +5,7 @@ import {
   index,
   integer,
   jsonb,
+  numeric,
   pgEnum,
   pgTable,
   serial,
@@ -118,6 +119,20 @@ export const products = pgTable(
     stock: integer("stock").notNull().default(0),
     isActive: boolean("is_active").notNull().default(true),
     isFeatured: boolean("is_featured").notNull().default(false),
+    // Amazon-style specifications, all optional -- existing products keep working
+    // unchanged. widthCm/depthCm/heightCm are shown instead of the free-text
+    // `dimensions` column when set; `dimensions` is kept as the fallback.
+    brand: text("brand"),
+    sku: text("sku"),
+    widthCm: numeric("width_cm", { precision: 7, scale: 1 }),
+    depthCm: numeric("depth_cm", { precision: 7, scale: 1 }),
+    heightCm: numeric("height_cm", { precision: 7, scale: 1 }),
+    weightKg: numeric("weight_kg", { precision: 7, scale: 1 }),
+    assembly: text("assembly"), // "not_required" | "required" | "free_installation"
+    warrantyMonths: integer("warranty_months"),
+    countryOfOrigin: text("country_of_origin"),
+    highlights: jsonb("highlights").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+    specs: jsonb("specs").$type<Record<string, string | number | boolean | string[]>>().notNull().default(sql`'{}'::jsonb`),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
@@ -125,6 +140,7 @@ export const products = pgTable(
     index("products_category_idx").on(t.categoryId),
     index("products_active_price_idx").on(t.isActive, t.price),
     index("products_material_idx").on(t.material),
+    uniqueIndex("products_sku_idx").on(t.sku),
   ],
 );
 

@@ -14,7 +14,7 @@ export default async function EditProduct({ params }: PageProps<"/admin/products
   if (!z.uuid().safeParse(id).success) notFound();
   const [p, cats] = await Promise.all([
     db.query.products.findFirst({ where: eq(products.id, id), with: { images: { orderBy: [asc(productImages.position)] } } }),
-    db.select({ id: categories.id, name: categories.name }).from(categories).orderBy(asc(categories.position)),
+    db.select({ id: categories.id, name: categories.name, slug: categories.slug }).from(categories).orderBy(asc(categories.position)),
   ]);
   if (!p) notFound();
   return (
@@ -28,6 +28,9 @@ export default async function EditProduct({ params }: PageProps<"/admin/products
           price: String(p.price), mrp: p.mrp ? String(p.mrp) : "", material: p.material, color: p.color, dimensions: p.dimensions,
           stock: String(p.stock), isActive: p.isActive, isFeatured: p.isFeatured,
           images: p.images.map((i) => ({ publicId: i.publicId, url: i.url, alt: i.alt, fit: i.fit === "cover" ? "cover" as const : "contain" as const })),
+          brand: p.brand ?? "", sku: p.sku ?? "", widthCm: p.widthCm ?? "", depthCm: p.depthCm ?? "", heightCm: p.heightCm ?? "", weightKg: p.weightKg ?? "",
+          assembly: p.assembly ?? "", warrantyMonths: p.warrantyMonths ? String(p.warrantyMonths) : "", countryOfOrigin: p.countryOfOrigin ?? "",
+          highlights: p.highlights, specs: p.specs,
         }}
       />
     </>

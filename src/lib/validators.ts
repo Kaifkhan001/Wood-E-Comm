@@ -111,6 +111,21 @@ export const productImageInput = z.object({
   fit: z.enum(["contain", "cover"]).default("contain"),
 });
 
+// Drizzle's numeric() columns store/return strings (a JS number can't safely
+// represent arbitrary-precision decimals), so a validated measurement is
+// coerced to a number just to check it's sane, then turned back into a string.
+const optionalMeasurement = (max: number) =>
+  z.preprocess(
+    (v) => (v === "" || v === null || v === undefined ? null : v),
+    z
+      .union([z.null(), z.coerce.number().min(0).max(max).transform((n) => String(n))])
+      .optional(),
+  );
+
+export const assembly = z.enum(["not_required", "required", "free_installation"]).nullable().optional();
+
+export const highlightsSchema = z.array(text(250)).max(10).default([]);
+
 export const productSchema = z.object({
   name: text(120, 2),
   slug,
@@ -126,6 +141,28 @@ export const productSchema = z.object({
   isActive: z.boolean(),
   isFeatured: z.boolean(),
   images: z.array(productImageInput).max(8),
+  // Amazon-style specifications, all optional.
+  brand: text(80).default(""),
+  sku: z
+    .string()
+    .max(60)
+    .transform((s) => clean(s))
+    .pipe(z.string().max(60))
+    .nullable()
+    .optional()
+    .transform((s) => (s ? s : null)),
+  widthCm: optionalMeasurement(1000),
+  depthCm: optionalMeasurement(1000),
+  heightCm: optionalMeasurement(1000),
+  weightKg: optionalMeasurement(1000),
+  assembly,
+  warrantyMonths: z.coerce.number().int().min(0).max(600).nullable().optional(),
+  countryOfOrigin: text(60).default(""),
+  highlights: highlightsSchema,
+  // Validated against the category's template server side (see catalog-options.ts
+  // parseSpecs), since that needs a DB lookup for the category's slug -- here we
+  // only make sure it's a plain object so it's safe to pass along.
+  specs: z.record(z.string(), z.unknown()).default({}),
 });
 
 export const categorySchema = z.object({

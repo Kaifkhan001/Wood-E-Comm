@@ -21,7 +21,7 @@ import {
 import { assertAdmin } from "@/lib/session";
 import { destroyAsset } from "@/lib/cloudinary";
 import { categorySchema, productSchema, projectSchema, zodErrors, type ActionResult } from "@/lib/validators";
-import { canonicalizeMaterial } from "@/lib/catalog-options";
+import { canonicalizeMaterial, parseSpecs } from "@/lib/catalog-options";
 
 type Tx = PgTransaction<any, any, any>;
 
@@ -66,6 +66,11 @@ function isUniqueViolation(e: unknown) {
   return err?.code === "23505" || err?.cause?.code === "23505";
 }
 
+function uniqueViolationConstraint(e: unknown): string {
+  const err = e as { constraint_name?: string; cause?: { constraint_name?: string } };
+  return err?.constraint_name ?? err?.cause?.constraint_name ?? "";
+}
+
 function revalidateCatalog(slug?: string) {
   revalidatePath("/");
   revalidatePath("/furniture", "layout");
@@ -81,8 +86,21 @@ export async function saveProduct(id: string | null, input: unknown): Promise<Ac
 
   const parsed = productSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Please fix the highlighted fields.", fieldErrors: zodErrors(parsed.error) };
-  const { images, ...rest } = parsed.data;
-  const data = { ...rest, material: canonicalizeMaterial(rest.material) };
+  const { images, specs: rawSpecs, ...rest } = parsed.data;
+  const [category] = await db.select({ slug: categories.slug }).from(categories).where(eq(categories.id, rest.categoryId)).limit(1);
+  if (!category) return { ok: false, error: "Choose a category.", fieldErrors: { categoryId: "Choose a category" } };
+  const data = {
+    ...rest,
+    material: canonicalizeMaterial(rest.material),
+    sku: rest.sku ?? null,
+    widthCm: rest.widthCm ?? null,
+    depthCm: rest.depthCm ?? null,
+    heightCm: rest.heightCm ?? null,
+    weightKg: rest.weightKg ?? null,
+    assembly: rest.assembly ?? null,
+    warrantyMonths: rest.warrantyMonths ?? null,
+    specs: parseSpecs(category.slug, rawSpecs),
+  };
   if (data.mrp && data.mrp < data.price) return { ok: false, error: "MRP can't be lower than the selling price.", fieldErrors: { mrp: "Must be at least the price" } };
   if (images.some((i) => !i.publicId && !i.url)) return { ok: false, error: "One of the images is missing." };
 
@@ -129,7 +147,10 @@ export async function saveProduct(id: string | null, input: unknown): Promise<Ac
     const message = finalSlug === data.slug ? "Product saved" : `Product saved. URL: /product/${finalSlug}`;
     return { ok: true, data: { id: productId, slug: finalSlug }, message };
   } catch (e) {
-    if (isUniqueViolation(e)) return { ok: false, error: "That URL slug is already used by another product.", fieldErrors: { slug: "Already in use" } };
+    if (isUniqueViolation(e)) {
+      if (uniqueViolationConstraint(e).includes("sku")) return { ok: false, error: "That SKU is already used by another product.", fieldErrors: { sku: "Already in use" } };
+      return { ok: false, error: "That URL slug is already used by another product.", fieldErrors: { slug: "Already in use" } };
+    }
     if ((e as Error).message === "NOT_FOUND") return { ok: false, error: "This product no longer exists." };
     console.error("saveProduct", e);
     return { ok: false, error: GENERIC };

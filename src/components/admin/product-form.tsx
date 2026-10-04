@@ -6,6 +6,9 @@ import { saveProduct } from "@/app/actions/admin";
 import { ImageUploader, StockUrlField, type UploaderImg } from "@/components/admin/image-uploader";
 import { SlugField } from "@/components/admin/slug-field";
 import { MaterialCombobox } from "@/components/admin/material-combobox";
+import { SpecsEditor, type SpecsValue } from "@/components/admin/specs-editor";
+import { HighlightsEditor } from "@/components/admin/highlights-editor";
+import { ASSEMBLY_OPTIONS } from "@/lib/catalog-options";
 import { UPLOAD_FOLDER } from "@/lib/cloudinary-folders";
 import { slugify } from "@/lib/utils";
 import { SaveBar } from "./save-bar";
@@ -16,9 +19,12 @@ export type ProductFormValues = {
   name: string; slug: string; shortDescription: string; description: string; categoryId: string;
   price: string; mrp: string; material: string; color: string; dimensions: string; stock: string;
   isActive: boolean; isFeatured: boolean; images: Img[];
+  brand: string; sku: string; widthCm: string; depthCm: string; heightCm: string; weightKg: string;
+  assembly: string; warrantyMonths: string; countryOfOrigin: string;
+  highlights: string[]; specs: SpecsValue;
 };
 
-export function ProductForm({ id, initial, categories }: { id: string | null; initial: ProductFormValues; categories: { id: string; name: string }[] }) {
+export function ProductForm({ id, initial, categories }: { id: string | null; initial: ProductFormValues; categories: { id: string; name: string; slug: string }[] }) {
   const router = useRouter();
   const [v, setV] = useState(initial);
   const [baseline, setBaseline] = useState(initial);
@@ -48,6 +54,13 @@ export function ProductForm({ id, initial, categories }: { id: string | null; in
       mrp: v.mrp ? Number(v.mrp) : null,
       stock: Number(v.stock || 0),
       images: v.images.map((i) => ({ publicId: i.publicId ?? null, url: i.url ?? null, alt: i.alt, fit: i.fit ?? "contain" })),
+      sku: v.sku || null,
+      widthCm: v.widthCm || null,
+      depthCm: v.depthCm || null,
+      heightCm: v.heightCm || null,
+      weightKg: v.weightKg || null,
+      assembly: v.assembly || null,
+      warrantyMonths: v.warrantyMonths ? Number(v.warrantyMonths) : null,
     });
     setPending(false);
     if (!res.ok) {
@@ -94,7 +107,12 @@ export function ProductForm({ id, initial, categories }: { id: string | null; in
           <div>
             <label htmlFor="p-desc" className="label-text">Full description <span className="font-normal text-muted">(blank line starts a new paragraph)</span></label>
             <textarea id="p-desc" rows={8} className="field bg-white" value={v.description} maxLength={5000} onChange={(e) => set("description", e.target.value)} />
+            <p className="mt-1.5 text-xs text-muted">Write this in your own words. Copying text from Amazon or other sites can hurt Google ranking.</p>
           </div>
+        </section>
+
+        <section className="rounded-lg border border-line bg-white p-5">
+          <HighlightsEditor value={v.highlights} onChange={(highlights) => set("highlights", highlights)} />
         </section>
 
         <section className="rounded-lg border border-line bg-white p-5">
@@ -131,8 +149,36 @@ export function ProductForm({ id, initial, categories }: { id: string | null; in
         <section className="space-y-4 rounded-lg border border-line bg-white p-5">
           <div><label htmlFor="p-mat" className="label-text">Material <span className="font-normal text-muted">(used for filters)</span></label><MaterialCombobox id="p-mat" value={v.material} onChange={(m) => set("material", m)} /><F k="material" /></div>
           <div><label htmlFor="p-color" className="label-text">Finish or colour</label><input id="p-color" className="field bg-white" value={v.color} maxLength={40} onChange={(e) => set("color", e.target.value)} /></div>
-          <div><label htmlFor="p-dim" className="label-text">Dimensions</label><input id="p-dim" className="field bg-white" value={v.dimensions} maxLength={120} onChange={(e) => set("dimensions", e.target.value)} placeholder="W 198 × D 86 × H 82 cm" /></div>
+          <div><label htmlFor="p-dim" className="label-text">Dimensions <span className="font-normal text-muted">(fallback text, used if W/D/H below are blank)</span></label><input id="p-dim" className="field bg-white" value={v.dimensions} maxLength={120} onChange={(e) => set("dimensions", e.target.value)} placeholder="W 198 × D 86 × H 82 cm" /></div>
         </section>
+
+        <details className="group rounded-lg border border-line bg-white p-5">
+          <summary className="cursor-pointer list-none font-sans text-base font-semibold [&::-webkit-details-marker]:hidden">
+            Specifications <span className="font-normal text-muted group-open:hidden">(brand, SKU, size, weight…)</span>
+          </summary>
+          <div className="mt-4 space-y-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div><label htmlFor="p-brand" className="label-text">Brand</label><input id="p-brand" className="field bg-white" value={v.brand} maxLength={80} onChange={(e) => set("brand", e.target.value)} placeholder="Wood & Wonders" /></div>
+              <div><label htmlFor="p-sku" className="label-text">SKU / model number</label><input id="p-sku" className="field bg-white" value={v.sku} maxLength={60} onChange={(e) => set("sku", e.target.value)} /><F k="sku" /></div>
+              <div><label htmlFor="p-w" className="label-text">Width (cm)</label><input id="p-w" inputMode="decimal" className="field bg-white" value={v.widthCm} onChange={(e) => set("widthCm", e.target.value.replace(/[^\d.]/g, ""))} /></div>
+              <div><label htmlFor="p-d" className="label-text">Depth (cm)</label><input id="p-d" inputMode="decimal" className="field bg-white" value={v.depthCm} onChange={(e) => set("depthCm", e.target.value.replace(/[^\d.]/g, ""))} /></div>
+              <div><label htmlFor="p-h" className="label-text">Height (cm)</label><input id="p-h" inputMode="decimal" className="field bg-white" value={v.heightCm} onChange={(e) => set("heightCm", e.target.value.replace(/[^\d.]/g, ""))} /></div>
+              <div><label htmlFor="p-wt" className="label-text">Item weight (kg)</label><input id="p-wt" inputMode="decimal" className="field bg-white" value={v.weightKg} onChange={(e) => set("weightKg", e.target.value.replace(/[^\d.]/g, ""))} /></div>
+              <div>
+                <label htmlFor="p-assembly" className="label-text">Assembly</label>
+                <select id="p-assembly" className="field bg-white" value={v.assembly} onChange={(e) => set("assembly", e.target.value)}>
+                  <option value="">Not specified</option>
+                  {ASSEMBLY_OPTIONS.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
+                </select>
+              </div>
+              <div><label htmlFor="p-warranty" className="label-text">Warranty (months)</label><input id="p-warranty" inputMode="numeric" className="field bg-white" value={v.warrantyMonths} onChange={(e) => set("warrantyMonths", e.target.value.replace(/\D/g, ""))} /></div>
+              <div><label htmlFor="p-origin" className="label-text">Country of origin</label><input id="p-origin" className="field bg-white" value={v.countryOfOrigin} maxLength={60} onChange={(e) => set("countryOfOrigin", e.target.value)} placeholder="India" /></div>
+            </div>
+            <div className="border-t border-line pt-4">
+              <SpecsEditor categorySlug={categories.find((c) => c.id === v.categoryId)?.slug} value={v.specs} onChange={(specs) => set("specs", specs)} />
+            </div>
+          </div>
+        </details>
         <SaveBar
           dirty={dirty}
           pending={pending || uploading > 0}
