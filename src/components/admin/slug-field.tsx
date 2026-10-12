@@ -31,7 +31,7 @@ export function SlugField({
       <div>
         <label className="label-text">URL</label>
         <div className="flex items-center justify-between gap-3 rounded-md border border-line bg-plaster/40 px-3.5 py-2.5">
-          <span className="truncate text-[15px] text-muted">
+          <span className="min-w-0 flex-1 truncate text-[15px] text-muted">
             {prefix}
             <span className="text-ink">{value}</span>
           </span>

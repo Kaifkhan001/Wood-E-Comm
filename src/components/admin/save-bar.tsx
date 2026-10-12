@@ -40,20 +40,20 @@ export function SaveBar({
     >
       {hint && <p className="mb-2 text-sm text-muted">{hint}</p>}
       <div className="flex items-center gap-2">
-        <button type="submit" className="btn-primary flex-1 sm:flex-none" disabled={disabled}>
+        <button type="submit" className="btn-primary min-w-0 flex-1 sm:flex-none" disabled={disabled}>
           {label}
         </button>
         {onDiscard && (
           <button
             type="button"
-            className="btn-outline flex-1 sm:flex-none"
+            className="btn-outline min-w-0 flex-1 sm:flex-none"
             disabled={pending || !dirty}
             onClick={() => {
               if (discardConfirm && !confirm(discardConfirm)) return;
               onDiscard();
             }}
           >
-            Discard changes
+            Discard
           </button>
         )}
       </div>

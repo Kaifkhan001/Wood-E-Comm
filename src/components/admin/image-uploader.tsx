@@ -161,17 +161,19 @@ function SortableThumb({
           type="button"
           onClick={() => onFitChange("contain")}
           aria-pressed={fit === "contain"}
-          className={cn("rounded-full px-1.5 py-1", fit === "contain" ? "bg-bottle text-paper" : "text-muted hover:text-ink")}
+          title="Fit product (show it whole, padded)"
+          className={cn("whitespace-nowrap rounded-full px-1.5 py-1", fit === "contain" ? "bg-bottle text-paper" : "text-muted hover:text-ink")}
         >
-          Fit product
+          Fit
         </button>
         <button
           type="button"
           onClick={() => onFitChange("cover")}
           aria-pressed={fit === "cover"}
-          className={cn("rounded-full px-1.5 py-1", fit === "cover" ? "bg-bottle text-paper" : "text-muted hover:text-ink")}
+          title="Fill frame (crop to fill)"
+          className={cn("whitespace-nowrap rounded-full px-1.5 py-1", fit === "cover" ? "bg-bottle text-paper" : "text-muted hover:text-ink")}
         >
-          Fill frame
+          Fill
         </button>
       </div>
       {showAlt && (

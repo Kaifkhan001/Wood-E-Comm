@@ -117,7 +117,7 @@ export function ProductForm({
   const F = ({ k }: { k: string }) => (errors[k] ? <p className="field-error">{errors[k]}</p> : null);
 
   return (
-    <form onSubmit={onSubmit} noValidate className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
+    <form onSubmit={onSubmit} noValidate className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
       <div className="space-y-6">
         <section className="space-y-4 rounded-lg border border-line bg-white p-5">
           <div>
@@ -180,7 +180,7 @@ export function ProductForm({
             </select>
             <F k="categoryId" />
           </div>
-          <div>
+          <div className="col-span-2">
             <label htmlFor="p-subcat" className="label-text">Subcategory <span className="font-normal text-muted">(optional)</span></label>
             <select id="p-subcat" className="field bg-white" value={v.subcategoryId} disabled={!v.categoryId} onChange={(e) => set("subcategoryId", e.target.value)}>
               <option value="">None</option>
