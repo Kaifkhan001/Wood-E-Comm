@@ -97,7 +97,7 @@ export default async function ProductPage({ params }: PageProps<"/product/[slug]
     if (redirectSlug) permanentRedirect(`/product/${redirectSlug}`);
     notFound();
   }
-  const related = await getRelatedProducts(p.categoryId, p.id);
+  const related = await getRelatedProducts(p.categoryId, p.id, p.subcategoryId);
   const off = discountPercent(p.price, p.mrp);
   const jsonLdImages = p.images.map((img) => imageSrc(img, 1200, { fit: "cover", ar: "4:5" }));
   const url = `${site.url}/product/${p.slug}`;
@@ -145,6 +145,7 @@ export default async function ProductPage({ params }: PageProps<"/product/[slug]
           { name: "Home", path: "/" },
           { name: "Furniture", path: "/furniture" },
           { name: p.category.name, path: `/furniture/${p.category.slug}` },
+          ...(p.subcategory ? [{ name: p.subcategory.name, path: `/furniture/${p.category.slug}/${p.subcategory.slug}` }] : []),
           { name: p.name, path: `/product/${p.slug}` },
         ])}
       />
@@ -154,6 +155,7 @@ export default async function ProductPage({ params }: PageProps<"/product/[slug]
           <li><Link href="/" className="hover:text-ink">Home</Link> /</li>
           <li><Link href="/furniture" className="hover:text-ink">Furniture</Link> /</li>
           <li><Link href={`/furniture/${p.category.slug}`} className="hover:text-ink">{p.category.name}</Link> /</li>
+          {p.subcategory && <li><Link href={`/furniture/${p.category.slug}/${p.subcategory.slug}`} className="hover:text-ink">{p.subcategory.name}</Link> /</li>}
           <li aria-current="page" className="text-ink">{p.name}</li>
         </ol>
       </nav>
@@ -242,8 +244,13 @@ export default async function ProductPage({ params }: PageProps<"/product/[slug]
       {related.length > 0 && (
         <section className="mt-24" aria-labelledby="related">
           <div className="mb-8 flex items-end justify-between gap-4">
-            <h2 id="related" className="text-3xl">More {p.category.name.toLowerCase()}</h2>
-            <Link href={`/furniture/${p.category.slug}`} className="text-[15px] underline underline-offset-4 hover:text-bottle">See all</Link>
+            <h2 id="related" className="text-3xl">More {p.subcategory ? p.subcategory.name.toLowerCase() : p.category.name.toLowerCase()}</h2>
+            <Link
+              href={p.subcategory ? `/furniture/${p.category.slug}/${p.subcategory.slug}` : `/furniture/${p.category.slug}`}
+              className="text-[15px] underline underline-offset-4 hover:text-bottle"
+            >
+              See all
+            </Link>
           </div>
           <ProductGrid items={related} />
         </section>

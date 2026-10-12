@@ -1,25 +1,33 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { filterSchema } from "@/lib/validators";
-import { getCategories, getMaterialFacets, getPriceBounds, getProducts } from "@/lib/queries/catalog";
-import { FilterSidebar, Toolbar } from "./filters";
+import { getCategories, getMaterialFacets, getPriceBounds, getProducts, getSpecFacets, getSubcategoriesWithCounts, type Scope } from "@/lib/queries/catalog";
+import { specFieldsFor, parseSpecFilters } from "@/lib/catalog-options";
+import { FilterSidebar, Toolbar, type SpecFacet } from "./filters";
 import { ProductGrid } from "./product-card";
 import { cn } from "@/lib/utils";
 import { breadcrumbJsonLd, JsonLd } from "@/lib/seo";
-import type { Category } from "@/db/schema";
+import type { Category, Subcategory } from "@/db/schema";
 
 type SP = Record<string, string | string[] | undefined>;
 
-export async function CatalogView({ searchParams, category }: { searchParams: SP; category?: Category }) {
+export async function CatalogView({ searchParams, category, subcategory }: { searchParams: SP; category?: Category; subcategory?: Subcategory }) {
   const filters = filterSchema.parse(searchParams);
-  const [cats, { items, total, page, pages }, materials, bounds] = await Promise.all([
-    getCategories(),
-    getProducts(filters, category?.id),
-    getMaterialFacets(category?.id),
-    getPriceBounds(category?.id),
-  ]);
+  const scope: Scope = { categoryId: category?.id, subcategoryId: subcategory?.id };
+  const filterableFields = category ? specFieldsFor(category.slug).filter((f) => f.filterable) : [];
+  const specFilters = parseSpecFilters(category?.slug, searchParams);
 
-  const basePath = category ? `/furniture/${category.slug}` : "/furniture";
+  const [cats, { items, total, page, pages }, materials, bounds, subcats, specFacetCounts] = await Promise.all([
+    getCategories(),
+    getProducts(filters, scope, specFilters),
+    getMaterialFacets(scope),
+    getPriceBounds(scope),
+    category ? getSubcategoriesWithCounts(category.id) : Promise.resolve([]),
+    Promise.all(filterableFields.map((f) => getSpecFacets(scope, f.key))),
+  ]);
+  const specFacets: SpecFacet[] = filterableFields.map((f, i) => ({ field: f, options: specFacetCounts[i].map((r) => ({ value: r.value, n: r.n })) }));
+
+  const basePath = category ? (subcategory ? `/furniture/${category.slug}/${subcategory.slug}` : `/furniture/${category.slug}`) : "/furniture";
   const pageHref = (n: number) => {
     const qs = new URLSearchParams();
     for (const [k, v] of Object.entries(searchParams)) if (typeof v === "string" && k !== "page" && k !== "focus") qs.set(k, v);
@@ -34,21 +42,27 @@ export async function CatalogView({ searchParams, category }: { searchParams: SP
         data={breadcrumbJsonLd([
           { name: "Home", path: "/" },
           { name: "Furniture", path: "/furniture" },
-          ...(category ? [{ name: category.name, path: basePath }] : []),
+          ...(category ? [{ name: category.name, path: `/furniture/${category.slug}` }] : []),
+          ...(subcategory ? [{ name: subcategory.name, path: basePath }] : []),
         ])}
       />
       <nav aria-label="Breadcrumb" className="text-sm text-muted">
         <ol className="flex flex-wrap gap-1.5">
           <li><Link href="/" className="hover:text-ink">Home</Link> /</li>
           <li>{category ? <><Link href="/furniture" className="hover:text-ink">Furniture</Link> /</> : <span aria-current="page">Furniture</span>}</li>
-          {category && <li aria-current="page" className="text-ink">{category.name}</li>}
+          {category && <li>{subcategory ? <><Link href={`/furniture/${category.slug}`} className="hover:text-ink">{category.name}</Link> /</> : <span aria-current="page" className="text-ink">{category.name}</span>}</li>}
+          {subcategory && <li aria-current="page" className="text-ink">{subcategory.name}</li>}
         </ol>
       </nav>
 
       <header className="mt-5 max-w-2xl">
-        <h1 className="text-[40px] leading-[1.05] sm:text-[56px]">{category ? category.name : "All furniture"}</h1>
+        <h1 className="text-[40px] leading-[1.05] sm:text-[56px]">{subcategory ? subcategory.name : category ? category.name : "All furniture"}</h1>
         <p className="mt-3 text-lg leading-relaxed text-muted">
-          {category ? category.description : "Solid-wood furniture made in our own workshop. Free delivery and installation in Mumbai, Thane and Pune."}
+          {subcategory
+            ? subcategory.description || `${subcategory.name} from our ${category!.name.toLowerCase()} range, delivered and installed in Mumbai, Thane and Pune.`
+            : category
+              ? category.description
+              : "Solid-wood furniture made in our own workshop. Free delivery and installation in Mumbai, Thane and Pune."}
         </p>
       </header>
 
@@ -65,13 +79,31 @@ export async function CatalogView({ searchParams, category }: { searchParams: SP
         </ul>
       </nav>
 
+      {category && subcats.length > 0 && (
+        <nav aria-label="Subcategories" className="-mx-5 mt-3 overflow-x-auto px-5 [scrollbar-width:none] sm:mx-0 sm:px-0">
+          <ul className="flex gap-2 whitespace-nowrap">
+            {subcats.map((s) => (
+              <li key={s.id}>
+                <Link
+                  href={`/furniture/${category.slug}/${s.slug}`}
+                  aria-current={subcategory?.id === s.id ? "page" : undefined}
+                  className={cn("inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3.5 text-sm", subcategory?.id === s.id ? "border-bottle bg-bottle text-paper" : "border-line hover:border-ink")}
+                >
+                  {s.name} <span className={cn("tabular-nums", subcategory?.id === s.id ? "text-paper/75" : "text-muted")}>{s.n}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
+
       <div className="mt-10 grid gap-10 lg:grid-cols-[240px_1fr]">
         <Suspense fallback={null}>
-          <FilterSidebar materials={materials} bounds={bounds} />
+          <FilterSidebar materials={materials} bounds={bounds} specFacets={specFacets} />
         </Suspense>
         <div className="min-w-0">
           <Suspense fallback={<div className="skeleton h-11 w-full" />}>
-            <Toolbar materials={materials} bounds={bounds} total={total} />
+            <Toolbar materials={materials} bounds={bounds} total={total} specFacets={specFacets} />
           </Suspense>
           <div className="mt-8">
             {items.length ? (

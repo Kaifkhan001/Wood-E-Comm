@@ -2,7 +2,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { saveProduct } from "@/app/actions/admin";
+import { Plus } from "lucide-react";
+import { saveProduct, saveSubcategory } from "@/app/actions/admin";
 import { ImageUploader, StockUrlField, type UploaderImg } from "@/components/admin/image-uploader";
 import { SlugField } from "@/components/admin/slug-field";
 import { MaterialCombobox } from "@/components/admin/material-combobox";
@@ -16,7 +17,7 @@ import { useUnsavedChangesGuard } from "@/lib/use-unsaved-changes";
 
 type Img = UploaderImg;
 export type ProductFormValues = {
-  name: string; slug: string; shortDescription: string; description: string; categoryId: string;
+  name: string; slug: string; shortDescription: string; description: string; categoryId: string; subcategoryId: string;
   price: string; mrp: string; material: string; color: string; dimensions: string; stock: string;
   isActive: boolean; isFeatured: boolean; images: Img[];
   brand: string; sku: string; widthCm: string; depthCm: string; heightCm: string; weightKg: string;
@@ -24,7 +25,19 @@ export type ProductFormValues = {
   highlights: string[]; specs: SpecsValue;
 };
 
-export function ProductForm({ id, initial, categories }: { id: string | null; initial: ProductFormValues; categories: { id: string; name: string; slug: string }[] }) {
+type Subcat = { id: string; categoryId: string; name: string; slug: string };
+
+export function ProductForm({
+  id,
+  initial,
+  categories,
+  subcategories,
+}: {
+  id: string | null;
+  initial: ProductFormValues;
+  categories: { id: string; name: string; slug: string }[];
+  subcategories: Subcat[];
+}) {
   const router = useRouter();
   const [v, setV] = useState(initial);
   const [baseline, setBaseline] = useState(initial);
@@ -33,8 +46,29 @@ export function ProductForm({ id, initial, categories }: { id: string | null; in
   const [pending, setPending] = useState(false);
   const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState(0);
+  const [subcats, setSubcats] = useState(subcategories);
+  const [addingSubcat, setAddingSubcat] = useState(false);
+  const [newSubcatName, setNewSubcatName] = useState("");
+  const [subcatPending, setSubcatPending] = useState(false);
   const dirty = JSON.stringify(v) !== JSON.stringify(baseline);
   useUnsavedChangesGuard(dirty);
+  const subcatsForCategory = subcats.filter((s) => s.categoryId === v.categoryId);
+
+  async function addSubcategory() {
+    const name = newSubcatName.trim();
+    if (name.length < 2 || !v.categoryId) return;
+    setSubcatPending(true);
+    const res = await saveSubcategory(null, { categoryId: v.categoryId, name, slug: slugify(name), position: subcatsForCategory.length });
+    setSubcatPending(false);
+    if (!res.ok) { toast.error(res.error); return; }
+    if (res.data) {
+      setSubcats((s) => [...s, { id: res.data!.id, categoryId: v.categoryId, name, slug: res.data!.slug }]);
+      set("subcategoryId", res.data.id);
+    }
+    setNewSubcatName("");
+    setAddingSubcat(false);
+    router.refresh();
+  }
 
   useEffect(() => {
     if (!saved) return;
@@ -61,6 +95,7 @@ export function ProductForm({ id, initial, categories }: { id: string | null; in
       weightKg: v.weightKg || null,
       assembly: v.assembly || null,
       warrantyMonths: v.warrantyMonths ? Number(v.warrantyMonths) : null,
+      subcategoryId: v.subcategoryId || null,
     });
     setPending(false);
     if (!res.ok) {
@@ -139,11 +174,37 @@ export function ProductForm({ id, initial, categories }: { id: string | null; in
           <div><label htmlFor="p-stock" className="label-text">Stock</label><input id="p-stock" inputMode="numeric" className="field bg-white" value={v.stock} onChange={(e) => set("stock", e.target.value.replace(/\D/g, ""))} /><F k="stock" /></div>
           <div>
             <label htmlFor="p-cat" className="label-text">Category</label>
-            <select id="p-cat" className="field bg-white" value={v.categoryId} onChange={(e) => set("categoryId", e.target.value)}>
+            <select id="p-cat" className="field bg-white" value={v.categoryId} onChange={(e) => setV((s) => ({ ...s, categoryId: e.target.value, subcategoryId: "" }))}>
               <option value="">Choose…</option>
               {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
             <F k="categoryId" />
+          </div>
+          <div>
+            <label htmlFor="p-subcat" className="label-text">Subcategory <span className="font-normal text-muted">(optional)</span></label>
+            <select id="p-subcat" className="field bg-white" value={v.subcategoryId} disabled={!v.categoryId} onChange={(e) => set("subcategoryId", e.target.value)}>
+              <option value="">None</option>
+              {subcatsForCategory.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+            {addingSubcat ? (
+              <div className="mt-2 flex gap-2">
+                <input
+                  className="field bg-white text-sm"
+                  placeholder="New subcategory name"
+                  value={newSubcatName}
+                  maxLength={60}
+                  autoFocus
+                  onChange={(e) => setNewSubcatName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void addSubcategory(); } }}
+                />
+                <button type="button" className="btn-primary px-3 py-1.5 text-sm" disabled={subcatPending || newSubcatName.trim().length < 2} onClick={addSubcategory}>Add</button>
+                <button type="button" className="btn-outline px-3 py-1.5 text-sm" onClick={() => { setAddingSubcat(false); setNewSubcatName(""); }}>Cancel</button>
+              </div>
+            ) : (
+              <button type="button" disabled={!v.categoryId} className="mt-1.5 flex items-center gap-1 text-sm font-medium text-bottle hover:underline disabled:opacity-40" onClick={() => setAddingSubcat(true)}>
+                <Plus className="h-3.5 w-3.5" /> Add subcategory
+              </button>
+            )}
           </div>
         </section>
         <section className="space-y-4 rounded-lg border border-line bg-white p-5">

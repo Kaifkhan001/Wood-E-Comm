@@ -7,12 +7,20 @@ export function pageMeta({
   path,
   image,
   noindex,
+  noindexFollow,
 }: {
   title: string;
   description: string;
   path: string;
   image?: string;
+  /** Excludes the page from the index entirely and doesn't crawl its links
+   * (private/account pages, stale redirect stubs). */
   noindex?: boolean;
+  /** Excludes the page from the index but still crawls its links -- for
+   * filtered listing URLs with too many combinations to be worth indexing
+   * individually, where the canonical already points crawlers at the
+   * unfiltered page. */
+  noindexFollow?: boolean;
 }): Metadata {
   const url = `${site.url}${path}`;
   return {
@@ -29,7 +37,7 @@ export function pageMeta({
       ...(image ? { images: [{ url: image, width: 1200, height: 800 }] } : {}),
     },
     twitter: { card: "summary_large_image", title, description, ...(image ? { images: [image] } : {}) },
-    ...(noindex ? { robots: { index: false, follow: false } } : {}),
+    ...(noindex ? { robots: { index: false, follow: false } } : noindexFollow ? { robots: { index: false, follow: true } } : {}),
   };
 }
 

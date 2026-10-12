@@ -77,6 +77,19 @@ const PROJECTS = [
 
 const slugify = (s: string) => s.toLowerCase().replace(/[^\w\s-]/g, "").trim().replace(/[\s_-]+/g, "-");
 
+// Kept in sync with scripts/subcategory-seed.sql, which backfills the same
+// defaults (same names and slugs) onto an existing (production) database via
+// a migration -- slugs are spelled out here rather than derived so the two
+// never drift apart.
+const SUBCATS: Record<(typeof CATS)[number]["key"], [name: string, slug: string][]> = {
+  sofa: [["3 Seater Sofas", "3-seater-sofas"], ["2 Seater Sofas", "2-seater-sofas"], ["1 Seater Sofas", "1-seater-sofas"], ["L-Shaped Sofas", "l-shaped-sofas"], ["Sofa Sets", "sofa-sets"], ["Sofa cum Beds", "sofa-cum-beds"], ["Recliners", "recliners"]],
+  bed: [["King Beds", "king-beds"], ["Queen Beds", "queen-beds"], ["Single Beds", "single-beds"], ["Bunk Beds", "bunk-beds"], ["Upholstered Beds", "upholstered-beds"]],
+  dining: [["2 Seater Dining Sets", "2-seater-dining-sets"], ["4 Seater Dining Sets", "4-seater-dining-sets"], ["6 Seater Dining Sets", "6-seater-dining-sets"], ["8 Seater Dining Sets", "8-seater-dining-sets"], ["Dining Tables", "dining-tables"], ["Dining Benches", "dining-benches"]],
+  chair: [["Accent Chairs", "accent-chairs"], ["Lounge Chairs", "lounge-chairs"], ["Rocking Chairs", "rocking-chairs"], ["Dining Chairs", "dining-chairs"], ["Study Chairs", "study-chairs"], ["Stools", "stools"]],
+  storage: [["Wardrobes", "wardrobes"], ["Sideboards & Cabinets", "sideboards-and-cabinets"], ["Bookshelves", "bookshelves"], ["Shoe Racks", "shoe-racks"], ["TV Units", "tv-units"], ["Chest of Drawers", "chest-of-drawers"]],
+  table: [["Coffee Tables", "coffee-tables"], ["Side Tables", "side-tables"], ["Console Tables", "console-tables"], ["Study Tables", "study-tables"], ["Nesting Tables", "nesting-tables"]],
+};
+
 async function main() {
   const client = postgres(process.env.DATABASE_URL!, { max: 1, prepare: false });
   const db = drizzle(client, { schema });
@@ -84,6 +97,7 @@ async function main() {
   await db.delete(schema.productImages);
   await db.delete(schema.orderItems);
   await db.delete(schema.products);
+  await db.delete(schema.subcategories);
   await db.delete(schema.categories);
   await db.delete(schema.projects);
 
@@ -92,6 +106,12 @@ async function main() {
     .values(CATS.map((c, i) => ({ name: c.name, slug: c.slug, description: c.description, imageUrl: u(IMG[c.key][0], 800), position: i })))
     .returning();
   const catId = Object.fromEntries(CATS.map((c, i) => [c.key, cats[i].id]));
+
+  for (const c of CATS) {
+    await db.insert(schema.subcategories).values(
+      SUBCATS[c.key].map(([name, slug], i) => ({ categoryId: catId[c.key], name, slug, position: i })),
+    );
+  }
 
   for (const [i, [cat, name, material, color, price, mrp, dims, stock, featured]] of PRODUCTS.entries()) {
     const [p] = await db

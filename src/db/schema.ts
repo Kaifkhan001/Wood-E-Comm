@@ -99,6 +99,25 @@ export const categories = pgTable("categories", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Admin-managed subcategories within a category (e.g. "3 Seater Sofas" under
+// "Sofas"). A product's subcategory is optional, and deleting one just clears
+// it from any products that used it rather than touching the products.
+export const subcategories = pgTable(
+  "subcategories",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    categoryId: uuid("category_id")
+      .notNull()
+      .references(() => categories.id, { onDelete: "restrict" }),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    description: text("description").notNull().default(""),
+    position: integer("position").notNull().default(0),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("subcategories_category_slug_idx").on(t.categoryId, t.slug)],
+);
+
 export const products = pgTable(
   "products",
   {
@@ -110,6 +129,7 @@ export const products = pgTable(
     categoryId: uuid("category_id")
       .notNull()
       .references(() => categories.id, { onDelete: "restrict" }),
+    subcategoryId: uuid("subcategory_id").references(() => subcategories.id, { onDelete: "set null" }),
     // Prices are whole rupees. Keep integer to avoid float errors.
     price: integer("price").notNull(),
     mrp: integer("mrp"),
@@ -138,9 +158,11 @@ export const products = pgTable(
   },
   (t) => [
     index("products_category_idx").on(t.categoryId),
+    index("products_subcategory_idx").on(t.subcategoryId),
     index("products_active_price_idx").on(t.isActive, t.price),
     index("products_material_idx").on(t.material),
     uniqueIndex("products_sku_idx").on(t.sku),
+    index("products_specs_gin_idx").using("gin", t.specs),
   ],
 );
 
@@ -310,10 +332,17 @@ export const leads = pgTable(
 
 export const categoriesRelations = relations(categories, ({ many }) => ({
   products: many(products),
+  subcategories: many(subcategories),
+}));
+
+export const subcategoriesRelations = relations(subcategories, ({ one, many }) => ({
+  category: one(categories, { fields: [subcategories.categoryId], references: [categories.id] }),
+  products: many(products),
 }));
 
 export const productsRelations = relations(products, ({ one, many }) => ({
   category: one(categories, { fields: [products.categoryId], references: [categories.id] }),
+  subcategory: one(subcategories, { fields: [products.subcategoryId], references: [subcategories.id] }),
   images: many(productImages),
 }));
 
@@ -332,6 +361,7 @@ export const orderItemsRelations = relations(orderItems, ({ one }) => ({
 
 export type Product = typeof products.$inferSelect;
 export type Category = typeof categories.$inferSelect;
+export type Subcategory = typeof subcategories.$inferSelect;
 export type ProductImage = typeof productImages.$inferSelect;
 export type Project = typeof projects.$inferSelect;
 export type OrderStatus = (typeof orderStatusEnum.enumValues)[number];

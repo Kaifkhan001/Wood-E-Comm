@@ -15,12 +15,13 @@ import {
   projectSlugRedirects,
   projects,
   quoteRequests,
+  subcategories,
   orderStatusEnum,
   quoteStatusEnum,
 } from "@/db/schema";
 import { assertAdmin } from "@/lib/session";
 import { destroyAsset } from "@/lib/cloudinary";
-import { categorySchema, productSchema, projectSchema, zodErrors, type ActionResult } from "@/lib/validators";
+import { categorySchema, productSchema, projectSchema, subcategorySchema, zodErrors, type ActionResult } from "@/lib/validators";
 import { canonicalizeMaterial, parseSpecs } from "@/lib/catalog-options";
 
 type Tx = PgTransaction<any, any, any>;
@@ -89,8 +90,17 @@ export async function saveProduct(id: string | null, input: unknown): Promise<Ac
   const { images, specs: rawSpecs, ...rest } = parsed.data;
   const [category] = await db.select({ slug: categories.slug }).from(categories).where(eq(categories.id, rest.categoryId)).limit(1);
   if (!category) return { ok: false, error: "Choose a category.", fieldErrors: { categoryId: "Choose a category" } };
+  // A subcategory must actually belong to the chosen category -- silently drop
+  // it otherwise rather than erroring, since this only happens if the category
+  // was just changed and the old subcategory no longer applies.
+  let subcategoryId = rest.subcategoryId ?? null;
+  if (subcategoryId) {
+    const [sub] = await db.select({ id: subcategories.id }).from(subcategories).where(and(eq(subcategories.id, subcategoryId), eq(subcategories.categoryId, rest.categoryId))).limit(1);
+    if (!sub) subcategoryId = null;
+  }
   const data = {
     ...rest,
+    subcategoryId,
     material: canonicalizeMaterial(rest.material),
     sku: rest.sku ?? null,
     widthCm: rest.widthCm ?? null,
@@ -233,10 +243,66 @@ export async function deleteCategory(id: string): Promise<ActionResult> {
   if (!uuid.safeParse(id).success) return { ok: false, error: "Invalid category." };
   const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(products).where(eq(products.categoryId, id));
   if (n > 0) return { ok: false, error: `Move or delete the ${n} products in this category first.` };
+  const [{ subN }] = await db.select({ subN: sql<number>`count(*)::int` }).from(subcategories).where(eq(subcategories.categoryId, id));
+  if (subN > 0) return { ok: false, error: `Delete the ${subN} subcategories in this category first.` };
   await db.delete(categories).where(eq(categories.id, id));
   revalidateCatalog();
   revalidatePath("/admin/categories");
   return { ok: true, message: "Category deleted" };
+}
+
+/* ── Subcategories ── */
+export async function saveSubcategory(id: string | null, input: unknown): Promise<ActionResult<{ id: string; slug: string }>> {
+  const denied = await gate();
+  if (denied) return denied;
+  if (id && !uuid.safeParse(id).success) return { ok: false, error: "Invalid subcategory." };
+  const parsed = subcategorySchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Please fix the highlighted fields.", fieldErrors: zodErrors(parsed.error) };
+  const data = parsed.data;
+  try {
+    const { subId, finalSlug } = await db.transaction(async (tx) => {
+      let candidate = data.slug;
+      for (let n = 2; ; n++) {
+        const conflict = await tx
+          .select({ id: subcategories.id })
+          .from(subcategories)
+          .where(
+            id
+              ? and(eq(subcategories.categoryId, data.categoryId), eq(subcategories.slug, candidate), ne(subcategories.id, id))
+              : and(eq(subcategories.categoryId, data.categoryId), eq(subcategories.slug, candidate)),
+          )
+          .limit(1);
+        if (!conflict.length) break;
+        candidate = `${data.slug}-${n}`;
+      }
+      let subId = id;
+      if (id) await tx.update(subcategories).set({ ...data, slug: candidate }).where(eq(subcategories.id, id));
+      else {
+        const [row] = await tx.insert(subcategories).values({ ...data, slug: candidate }).returning({ id: subcategories.id });
+        subId = row.id;
+      }
+      return { subId: subId!, finalSlug: candidate };
+    });
+    revalidateCatalog();
+    revalidatePath("/admin/categories");
+    const message = finalSlug === data.slug ? "Subcategory saved" : `Subcategory saved. URL ends in /${finalSlug}`;
+    return { ok: true, data: { id: subId, slug: finalSlug }, message };
+  } catch (e) {
+    console.error("saveSubcategory", e);
+    return { ok: false, error: GENERIC };
+  }
+}
+
+export async function deleteSubcategory(id: string): Promise<ActionResult> {
+  const denied = await gate();
+  if (denied) return denied;
+  if (!uuid.safeParse(id).success) return { ok: false, error: "Invalid subcategory." };
+  const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(products).where(eq(products.subcategoryId, id));
+  if (n > 0) return { ok: false, error: `Move or delete the ${n} products in this subcategory first.` };
+  await db.delete(subcategories).where(eq(subcategories.id, id));
+  revalidateCatalog();
+  revalidatePath("/admin/categories");
+  return { ok: true, message: "Subcategory deleted" };
 }
 
 /* ── Projects (interior design portfolio) ── */

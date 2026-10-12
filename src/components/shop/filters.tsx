@@ -4,9 +4,11 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { cn, formatINR } from "@/lib/utils";
+import type { SpecField } from "@/lib/catalog-options";
 
 type Facet = { material: string; n: number };
-type Props = { materials: Facet[]; bounds: { min: number; max: number }; total: number };
+export type SpecFacet = { field: SpecField; options: { value: string; n: number }[] };
+type Props = { materials: Facet[]; bounds: { min: number; max: number }; total: number; specFacets?: SpecFacet[] };
 
 const SORT_LABELS: Record<string, string> = {
   featured: "Featured",
@@ -39,7 +41,7 @@ export function useFilterNav() {
   return { params, set, pending };
 }
 
-function FilterBody({ materials, bounds }: Omit<Props, "total">) {
+function FilterBody({ materials, bounds, specFacets = [] }: Omit<Props, "total">) {
   const { params, set } = useFilterNav();
   const selected = (params.get("material") ?? "").split(",").filter(Boolean);
   const min = params.get("min") ?? "";
@@ -113,6 +115,29 @@ function FilterBody({ materials, bounds }: Omit<Props, "total">) {
         <p className="mt-2 text-xs text-muted">Range in this category: {formatINR(bounds.min)} to {formatINR(bounds.max)}</p>
       </fieldset>
 
+      {specFacets.filter((sf) => sf.options.length > 1).map((sf) => (
+        <fieldset key={sf.field.key}>
+          <legend className="mb-3 text-sm font-semibold">{sf.field.label}</legend>
+          <ul className="space-y-1">
+            {sf.options.map((o) => (
+              <li key={o.value}>
+                <label className="flex cursor-pointer items-center gap-3 rounded py-1.5 text-[15px]">
+                  <input
+                    type="radio"
+                    name={`spec-${sf.field.key}`}
+                    className="h-4 w-4 accent-bottle"
+                    checked={params.get(sf.field.key) === o.value}
+                    onChange={() => set({ [sf.field.key]: params.get(sf.field.key) === o.value ? undefined : o.value })}
+                  />
+                  <span className="flex-1">{o.value}{sf.field.unit ? ` ${sf.field.unit}` : ""}</span>
+                  <span className="text-sm text-muted tabular-nums">{o.n}</span>
+                </label>
+              </li>
+            ))}
+          </ul>
+        </fieldset>
+      ))}
+
       <label className="flex cursor-pointer items-center gap-3 text-[15px]">
         <input type="checkbox" className="h-4 w-4 accent-bottle" checked={params.get("inStock") === "1"} onChange={(e) => set({ inStock: e.target.checked ? "1" : undefined })} />
         In stock only
@@ -121,12 +146,14 @@ function FilterBody({ materials, bounds }: Omit<Props, "total">) {
   );
 }
 
-export function Toolbar({ materials, bounds, total }: Props) {
+export function Toolbar({ materials, bounds, total, specFacets = [] }: Props) {
   const { params, set, pending } = useFilterNav();
   const [q, setQ] = useState(params.get("q") ?? "");
   const [drawer, setDrawer] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
-  const activeCount = ["material", "min", "max", "inStock", "q"].filter((k) => params.get(k)).length;
+  const specKeys = specFacets.map((sf) => sf.field.key);
+  const clearKeys = ["material", "min", "max", "inStock", "q", ...specKeys];
+  const activeCount = clearKeys.filter((k) => params.get(k)).length;
 
   useEffect(() => setQ(params.get("q") ?? ""), [params]);
   useEffect(() => { if (params.get("focus") === "search") searchRef.current?.focus(); }, [params]);
@@ -174,9 +201,9 @@ export function Toolbar({ materials, bounds, total }: Props) {
                 <p className="font-semibold">Filters</p>
                 <button type="button" onClick={() => setDrawer(false)} className="inline-flex h-10 w-10 items-center justify-center" aria-label="Close filters"><X className="h-5 w-5" /></button>
               </div>
-              <div className="overflow-y-auto p-5"><FilterBody materials={materials} bounds={bounds} /></div>
+              <div className="overflow-y-auto p-5"><FilterBody materials={materials} bounds={bounds} specFacets={specFacets} /></div>
               <div className="flex gap-2 border-t border-line p-4 pb-[calc(env(safe-area-inset-bottom)+16px)]">
-                <button type="button" className="btn-outline flex-1" onClick={() => set({ material: undefined, min: undefined, max: undefined, inStock: undefined, q: undefined })}>Clear all</button>
+                <button type="button" className="btn-outline flex-1" onClick={() => set(Object.fromEntries(clearKeys.map((k) => [k, undefined])))}>Clear all</button>
                 <button type="button" className="btn-primary flex-1" onClick={() => setDrawer(false)}>Show {total} results</button>
               </div>
             </motion.div>
@@ -187,17 +214,18 @@ export function Toolbar({ materials, bounds, total }: Props) {
   );
 }
 
-export function FilterSidebar({ materials, bounds }: Omit<Props, "total">) {
+export function FilterSidebar({ materials, bounds, specFacets = [] }: Omit<Props, "total">) {
   const { set, params } = useFilterNav();
-  const any = ["material", "min", "max", "inStock", "q"].some((k) => params.get(k));
+  const clearKeys = ["material", "min", "max", "inStock", "q", ...specFacets.map((sf) => sf.field.key)];
+  const any = clearKeys.some((k) => params.get(k));
   return (
     <aside className="hidden lg:block" aria-label="Filters">
       <div className="sticky top-28">
         <div className="mb-6 flex items-center justify-between">
           <h2 className="font-sans text-base font-semibold">Filter</h2>
-          {any && <button type="button" className="text-sm text-muted underline underline-offset-4 hover:text-ink" onClick={() => set({ material: undefined, min: undefined, max: undefined, inStock: undefined, q: undefined })}>Clear all</button>}
+          {any && <button type="button" className="text-sm text-muted underline underline-offset-4 hover:text-ink" onClick={() => set(Object.fromEntries(clearKeys.map((k) => [k, undefined])))}>Clear all</button>}
         </div>
-        <FilterBody materials={materials} bounds={bounds} />
+        <FilterBody materials={materials} bounds={bounds} specFacets={specFacets} />
       </div>
     </aside>
   );

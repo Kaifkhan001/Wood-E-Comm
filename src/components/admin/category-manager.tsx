@@ -5,6 +5,7 @@ import { deleteCategory, saveCategory } from "@/app/actions/admin";
 import { slugify } from "@/lib/utils";
 import { SlugField } from "./slug-field";
 import { SaveBar } from "./save-bar";
+import { SubcategoryManager, type Subcat } from "./subcategory-manager";
 import { useUnsavedChangesGuard } from "@/lib/use-unsaved-changes";
 
 type Cat = { id: string; name: string; slug: string; description: string; imageUrl: string | null; position: number; count: number };
@@ -15,7 +16,7 @@ function toValues(c: Cat): Values {
   return { name: c.name, slug: c.slug, description: c.description, imageUrl: c.imageUrl ?? "", position: String(c.position) };
 }
 
-export function CategoryManager({ items }: { items: Cat[] }) {
+export function CategoryManager({ items, subcategories }: { items: Cat[]; subcategories: Subcat[] }) {
   const [editing, setEditing] = useState<string | null>(null);
   const [f, setF] = useState(EMPTY);
   const [baseline, setBaseline] = useState(EMPTY);
@@ -44,19 +45,22 @@ export function CategoryManager({ items }: { items: Cat[] }) {
     <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
       <ul className="min-w-0 divide-y divide-line rounded-lg border border-line bg-white">
         {items.map((c) => (
-          <li key={c.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
-            <div className="min-w-0 break-words">
-              <p className="font-medium">{c.name} <span className="text-sm font-normal text-muted">/furniture/{c.slug}</span></p>
-              <p className="text-sm text-muted">{c.count} products, position {c.position}</p>
+          <li key={c.id} className="p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0 break-words">
+                <p className="font-medium">{c.name} <span className="text-sm font-normal text-muted">/furniture/{c.slug}</span></p>
+                <p className="text-sm text-muted">{c.count} products, position {c.position}</p>
+              </div>
+              <div className="flex gap-3 text-sm">
+                <button type="button" className="hover:underline" onClick={() => edit(c)}>Edit</button>
+                <button type="button" className="text-danger hover:underline" disabled={pending}
+                  onClick={() => {
+                    if (!confirm(`Delete category "${c.name}"?`)) return;
+                    start(async () => { const r = await deleteCategory(c.id); r.ok ? toast.success(r.message ?? "Deleted") : toast.error(r.error); if (editing === c.id) reset(); });
+                  }}>Delete</button>
+              </div>
             </div>
-            <div className="flex gap-3 text-sm">
-              <button type="button" className="hover:underline" onClick={() => edit(c)}>Edit</button>
-              <button type="button" className="text-danger hover:underline" disabled={pending}
-                onClick={() => {
-                  if (!confirm(`Delete category "${c.name}"?`)) return;
-                  start(async () => { const r = await deleteCategory(c.id); r.ok ? toast.success(r.message ?? "Deleted") : toast.error(r.error); if (editing === c.id) reset(); });
-                }}>Delete</button>
-            </div>
+            <SubcategoryManager categoryId={c.id} items={subcategories.filter((s) => s.categoryId === c.id)} />
           </li>
         ))}
         {!items.length && <li className="p-6 text-center text-muted">No categories yet. Add one to start listing products.</li>}

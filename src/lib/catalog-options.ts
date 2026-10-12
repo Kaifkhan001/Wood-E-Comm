@@ -146,6 +146,24 @@ export function parseSpecs(categorySlug: string | undefined, input: unknown): Re
   return out;
 }
 
+/** Extracts and validates spec filter values from (untrusted) URL search params
+ * against a category's filterable spec fields -- unknown keys are ignored and a
+ * value that isn't one of the field's options (for select) or a plain integer
+ * (for number) is dropped, so only whitelisted key/value pairs ever reach the
+ * database query. */
+export function parseSpecFilters(categorySlug: string | undefined, sp: Record<string, string | string[] | undefined>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const f of specFieldsFor(categorySlug)) {
+    if (!f.filterable) continue;
+    const raw = sp[f.key];
+    const v = Array.isArray(raw) ? raw[0] : raw;
+    if (!v) continue;
+    if (f.type === "select" && f.options?.includes(v)) out[f.key] = v;
+    else if (f.type === "number" && /^\d+$/.test(v)) out[f.key] = v;
+  }
+  return out;
+}
+
 /** Formats a stored spec value for display on the product page. */
 export function formatSpecValue(field: SpecField, value: string | number | boolean | string[]): string {
   if (field.type === "boolean") return value ? "Yes" : "No";

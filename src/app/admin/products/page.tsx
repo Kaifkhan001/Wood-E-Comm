@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { and, asc, desc, eq, ilike, type SQL } from "drizzle-orm";
 import { db } from "@/db";
-import { categories, productImages, products } from "@/db/schema";
+import { categories, productImages, products, subcategories } from "@/db/schema";
 import { CardList, CardRow, Empty, PageHeader, Table } from "@/components/admin/ui";
 import { ProductRowActions } from "@/components/admin/product-row-actions";
 import { AdminImageThumb } from "@/components/admin/image-thumb";
@@ -15,19 +15,23 @@ export default async function AdminProducts({ searchParams }: PageProps<"/admin/
   const sp = await searchParams;
   const q = typeof sp.q === "string" ? sp.q.slice(0, 80) : "";
   const cat = typeof sp.category === "string" && /^[0-9a-f-]{36}$/.test(sp.category) ? sp.category : "";
+  const sub = typeof sp.subcategory === "string" && /^[0-9a-f-]{36}$/.test(sp.subcategory) ? sp.subcategory : "";
   const conds: SQL[] = [];
   if (q) conds.push(ilike(products.name, `%${q.replace(/[\\%_]/g, (m) => `\\${m}`)}%`));
   if (cat) conds.push(eq(products.categoryId, cat));
+  if (sub) conds.push(eq(products.subcategoryId, sub));
 
-  const [cats, rows] = await Promise.all([
+  const [cats, subcats, rows] = await Promise.all([
     db.select({ id: categories.id, name: categories.name }).from(categories).orderBy(asc(categories.position)),
+    db.select({ id: subcategories.id, categoryId: subcategories.categoryId, name: subcategories.name }).from(subcategories).orderBy(asc(subcategories.position)),
     db.query.products.findMany({
       where: conds.length ? and(...conds) : undefined,
       orderBy: [desc(products.updatedAt)],
       limit: 200,
-      with: { images: { orderBy: [asc(productImages.position)], limit: 1 }, category: { columns: { name: true } } },
+      with: { images: { orderBy: [asc(productImages.position)], limit: 1 }, category: { columns: { name: true } }, subcategory: { columns: { name: true } } },
     }),
   ]);
+  const visibleSubcats = cat ? subcats.filter((s) => s.categoryId === cat) : subcats;
 
   return (
     <>
@@ -37,6 +41,10 @@ export default async function AdminProducts({ searchParams }: PageProps<"/admin/
         <select name="category" defaultValue={cat} className="field w-auto bg-white" aria-label="Category">
           <option value="">All categories</option>
           {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+        <select name="subcategory" defaultValue={sub} className="field w-auto bg-white" aria-label="Subcategory">
+          <option value="">All subcategories</option>
+          {visibleSubcats.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
         <button className="btn-outline">Filter</button>
       </form>
@@ -56,7 +64,7 @@ export default async function AdminProducts({ searchParams }: PageProps<"/admin/
                   <div className="min-w-0 flex-1">
                     <Link href={`/admin/products/${p.id}`} className="font-medium hover:underline">{p.name}</Link>
                     {p.isFeatured && <span className="ml-2 text-xs text-brass">Featured</span>}
-                    <p className="text-sm text-muted">{p.category.name} · {p.material}</p>
+                    <p className="text-sm text-muted">{p.category.name}{p.subcategory ? ` / ${p.subcategory.name}` : ""} · {p.material}</p>
                     <p className="mt-0.5 text-sm">
                       <span className="tabular-nums">{formatINR(p.price)}</span>
                       {" · "}
@@ -86,7 +94,7 @@ export default async function AdminProducts({ searchParams }: PageProps<"/admin/
                       <div><Link href={`/admin/products/${p.id}`} className="font-medium hover:underline">{p.name}</Link>{p.isFeatured && <span className="ml-2 text-xs text-brass">Featured</span>}<p className="text-muted">{p.material}</p></div>
                     </div>
                   </td>
-                  <td>{p.category.name}</td>
+                  <td>{p.category.name}{p.subcategory ? <span className="text-muted"> / {p.subcategory.name}</span> : null}</td>
                   <td className="tabular-nums">{formatINR(p.price)}</td>
                   <td className={p.stock === 0 ? "font-medium text-danger" : ""}>{p.stock}</td>
                   <td colSpan={2}><ProductRowActions id={p.id} slug={p.slug} isActive={p.isActive} name={p.name} /></td>

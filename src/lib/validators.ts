@@ -46,6 +46,17 @@ export const filterSchema = z.object({
 });
 export type Filters = z.infer<typeof filterSchema>;
 
+/** Counts how many distinct kinds of filter are active in a listing page's URL
+ * (material, a price range, in-stock-only, search text, and any active spec
+ * filter each count as one), used to decide noindex,follow for filter combos
+ * that are too numerous to be worth indexing individually. */
+export function countActiveFilters(sp: Record<string, string | string[] | undefined>, specKeys: string[] = []): number {
+  let n = ["material", "q", ...specKeys].filter((k) => sp[k]).length;
+  if (sp.min || sp.max) n++;
+  if (sp.inStock) n++;
+  return n;
+}
+
 /* ── Forms ── */
 export const leadSchema = z.object({
   phone: indianPhone,
@@ -132,6 +143,7 @@ export const productSchema = z.object({
   shortDescription: text(200).default(""),
   description: text(5000).default(""),
   categoryId: z.uuid("Choose a category"),
+  subcategoryId: z.uuid().nullable().optional(),
   price: z.coerce.number().int().min(1).max(10_000_000),
   mrp: z.coerce.number().int().min(0).max(10_000_000).nullable().optional(),
   material: text(40, 2),
@@ -170,6 +182,14 @@ export const categorySchema = z.object({
   slug,
   description: text(300).default(""),
   imageUrl: z.union([z.url().refine((u) => u.startsWith("https://"), "Must be https"), z.literal("")]).default(""),
+  position: z.coerce.number().int().min(0).max(1000).default(0),
+});
+
+export const subcategorySchema = z.object({
+  categoryId: z.uuid("Choose a category"),
+  name: text(60, 2),
+  slug,
+  description: text(300).default(""),
   position: z.coerce.number().int().min(0).max(1000).default(0),
 });
 
